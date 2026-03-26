@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from '_macros.html' import content_card, form_submit_button, no_button %}
+
+{% block title %} Edit Profile {% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            {% set form_content %}
+                <div class="text-center mb-4">
+                    <p class="text-muted">Update your personal information.</p>
+                </div>
+                <form method="POST" action="{{ url_for('user.edit_profile') }}" class="needs-validation" novalidate>
+                    <!-- First Name Field -->
+                    <div class="mb-3">
+                        <label for="first_name" class="form-label font-weight-bold">First Name</label>
+                        <input type="text" id="first_name" name="first_name" class="form-control{% if errors['first_name'] %} is-invalid{% endif %}" minlengh="2" maxlength="50" pattern="^[a-zA-Z]+$" 
+                            value="{% if user_input['first_name'] %}{{ user_input['first_name'] }}{% else %}{{ profile.first_name or '' }}{% endif %}">
+                        {% if errors['first_name'] %}
+                        <div class="invalid-feedback">{{ errors['first_name'] }}</div>
+                        {% else %}
+                        <div class="invalid-feedback">Please enter a first name (2-50 English letters only)..</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Last Name Field -->
+                    <div class="mb-3">
+                        <label for="last_name" class="form-label font-weight-bold">Last Name</label>
+                        <input type="text" id="last_name" name="last_name" class="form-control{% if errors['last_name'] %} is-invalid{% endif %}" minlengh="2" maxlength="50" pattern="^[a-zA-Z]+$" 
+                            value="{% if user_input['last_name'] %}{{ user_input['last_name'] }}{% else %}{{ profile.last_name or ''  }}{% endif %}">
+                        {% if errors['last_name'] %}
+                        <div class="invalid-feedback">{{ errors['last_name'] }}</div>
+                        {% else %}
+                        <div class="invalid-feedback">Please enter a last name (2-50 English letters only).</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email Field -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label font-weight-bold">Email</label>
+                        <input type="email" id="email" name="email" class="form-control{% if errors['email'] %} is-invalid{% endif %}" 
+                            value="{% if user_input['email'] %}{{ user_input['email'] }}{% else %}{{ profile.email or ''  }}{% endif %}" required>
+                        {% if errors['email'] %}
+                        <div class="invalid-feedback">{{ errors['email'] }}</div>
+                        {% else %}
+                        <div class="invalid-feedback">Please enter a valid email!</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Location Field -->
+                    <div class="mb-3">
+                        <label for="location" class="form-label font-weight-bold">Location</label>
+                        <input type="text" id="location" name="location" class="form-control" 
+                            value="{% if user_input['location'] %}{{ user_input['location'] }}{% else %}{{ profile.location or ''  }}{% endif %}" pattern="^(?!\s$)[a-zA-Z0-9, ]+$">
+                    </div>
+
+                    <!-- Description Field -->
+                    <div class="mb-3">
+                        <label for="description" class="form-label font-weight-bold">Description</label>
+                        <textarea id="description" name="description" class="form-control{% if errors['description'] %} is-invalid{% endif %}" rows="5" maxlength="300">{% if user_input['description'] %}{{ user_input['description'] }}{% else %}{{ profile.description or '' }}{% endif %}</textarea>
+                        <div class="form-text text-muted text-start">Maximum 300 characters</div>
+                        {% if errors['description'] %}
+                        <div class="invalid-feedback">{{ errors['description'] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Add buttons for navigation -->
+                    <div class="d-grid gap-2">
+                        {{ form_submit_button('Save Changes', 'btn-md', 'return confirm(\'Are you sure to Save the Changes?\');') }}
+                        {{ no_button('Cancel', url_for('user.profile'), 'btn-md') }}
+                    </div>
+                </form>
+            {% endset %}
+            {{ content_card('Edit Your Profile', form_content, '', true) }}
+        </div>
+    </div>
+</div>
+{% endblock %}

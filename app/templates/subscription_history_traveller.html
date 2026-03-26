@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from '_macros.html' import content_card, yes_button, no_items_message %}
+
+{% block title %}Subscription History{% endblock %}
+
+{% block content %}
+
+<div class="container-md mt-4">
+    {% if payment_details %}
+    {% set card_content %}
+        <div class="row">
+          <div class="table-responsive">
+              <table class="table table-hover border">
+                <thead class="table-light">
+                  <tr>
+                    <th>Plan</th>
+                    <th>Type</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Paid Amount</th>
+                    <th>Payment Method</th>
+                    <th>Payment Date</th>
+                    <th>Invoice</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for payment in payment_details %}
+                  <tr>
+                    <td>{{ payment.plan_name}}</td>
+                    <td> {{ payment.subscription_type }} </td>
+                    <td>{{ payment.start_date.strftime('%d %b %Y') }} </td>
+                    <td>{{ payment.expiry_date.strftime('%d %b %Y') }} </td>
+                    <td>
+                      {% if payment.payment_amount %}
+                      ${{ payment.payment_amount }} 
+                      {% else %}
+                      <span></span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if payment.payment_method == 'credit_card' %}
+                      Credit Card
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if payment.payment_date %}
+                      {{ payment.payment_date.strftime('%d %b %Y')}}
+                      {% else %}
+                      <span></span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if payment.payment_id %}
+                        {% if staff_view_user_id %}
+                            {{ yes_button('View', url_for('premium.view_subscription_invoice', payment_id=payment.payment_id, user_id=staff_view_user_id), 'btn-sm') }}
+                        {% else %}
+                            {{ yes_button('View', url_for('premium.view_subscription_invoice', payment_id=payment.payment_id), 'btn-sm') }}
+                        {% endif %}
+                      {% else %}
+                      <span class="text-muted">No Invoice</span>
+                      {% endif %}
+                  </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+    {% endset %}
+    {{ content_card('Subscription History', card_content, '', true) }}
+    {% else %}
+    {{ no_items_message('No subscription history available.', 'bi-clock-history', '', '', false) }}
+    {% endif %}
+
+    <!-- Back Button - Show different button based on access context -->
+    <div class="text-center mt-4">
+      {% if staff_view_user_id %}
+        {{ yes_button('<i class="bi bi-arrow-left"></i> Back to User Profile', url_for('user.view_other_profile', selected_user_id=staff_view_user_id, page='UserManagement')) }}
+      {% else %}
+        {{ yes_button('<i class="bi bi-arrow-left me-2"></i>Back to Subscription Details', url_for('premium.manage_subscription')) }}
+      {% endif %}
+    </div>
+</div>
+
+{% endblock %}

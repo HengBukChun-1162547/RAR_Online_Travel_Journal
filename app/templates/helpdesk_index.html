@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% from '_macros.html' import yes_button, no_items_message, filter_dropdown, pagination_nav %}
+
+{% block title %}Helpdesk - Support Requests{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div></div>
+        {{ yes_button('<i class="bi bi-plus-circle"></i> New Support Request', url_for('helpdesk.create_request')) }}
+    </div>
+    
+    <!-- Filter dropdowns -->
+    <div class="row mb-4">
+        <!-- Status Filter -->
+        <div class="col-12 col-md-3 mb-3 mb-md-0 px-3">
+            {% set status_options = [
+                {'value': '', 'label': 'All'},
+                {'value': 'New', 'label': 'New'},
+                {'value': 'Open', 'label': 'Open'},
+                {'value': 'Stalled', 'label': 'Stalled'},
+                {'value': 'Resolved', 'label': 'Resolved'}
+            ] %}
+            {{ filter_dropdown('Status', status_filter, 'status', status_options, url_for('helpdesk.index'), {'priority': priority_filter, 'issue_type': issue_type_filter}) }}
+        </div>
+
+        {% if is_staff %}
+        <!-- Priority Filter -->
+        <div class="col-12 col-md-3 mb-3 mb-md-0 px-3">
+            {% set priority_options = [
+                {'value': '', 'label': 'All'},
+                {'value': 'High', 'label': 'High'},
+                {'value': 'Normal', 'label': 'Normal'}
+            ] %}
+            {{ filter_dropdown('Priority', priority_filter, 'priority', priority_options, url_for('helpdesk.index'), {'status': status_filter, 'issue_type': issue_type_filter}) }}
+        </div>
+
+        <!-- Issue Type Filter -->
+        <div class="col-12 col-md-3 px-3">
+            {% set issue_type_options = [
+                {'value': '', 'label': 'All'},
+                {'value': 'Bug', 'label': 'Bug'},
+                {'value': 'Help_Request', 'label': 'Help'},
+                {'value': 'Appeal', 'label': 'Appeal'},
+                {'value': 'Others', 'label': 'Others'}
+            ] %}
+            {{ filter_dropdown('Issue Type', issue_type_filter, 'issue_type', issue_type_options, url_for('helpdesk.index'), {'status': status_filter, 'priority': priority_filter}) }}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Requests list -->
+    {% if requests %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead class="table-light">
+                <tr>
+                    {% if is_staff %}
+                    <th class="d-none d-sm-table-cell"> </th>
+                    {% endif %}
+                    <th>Summary</th>
+                    <th class="d-none d-sm-table-cell">Type</th>
+                    {% if is_staff %}
+                    <th class="d-none d-sm-table-cell">Created By</th>
+                    <th class="d-none d-sm-table-cell">Assigned To</th>
+                    <th>Priority</th>
+                    {% endif %}
+                    <th>Status</th>                   
+                    <th class="d-none d-sm-table-cell">Created On</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in requests %}
+                <tr>
+                    {% if is_staff %}
+                    <td class="d-none d-sm-table-cell">{{ request.request_id }}</td>
+                    {% endif %}
+                    <td>
+                        {% if request.summary|length > 20 %}
+                            {{ request.summary[:20] }}...
+                        {% else %}
+                            {{ request.summary }}
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-sm-table-cell">
+                        {% if request.issue_type == 'Bug' %}
+                        Bug
+                        {% elif request.issue_type == 'Help_Request' %}
+                        Help
+                        {% elif request.issue_type == 'Appeal' %}
+                        Appeal
+                        {% elif request.issue_type == 'Others' %}
+                        Others
+                        {% endif %}
+                    </td>
+                    {% if is_staff %}
+                    <td class="d-none d-sm-table-cell">{{ request.creator_name }}</td>
+                    <td class="d-none d-sm-table-cell">
+                        {% if request.assignee_name %}
+                            {{ request.assignee_name }}
+                        {% else %}
+                            Unassigned
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if request.priority == 'High' %}
+                        High
+                        {% else %}
+                        Normal
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                    <td>
+                        {% if request.status == 'New' %}
+                        New
+                        {% elif request.status == 'Open' %}
+                        Open
+                        {% elif request.status == 'Stalled' %}
+                        Stalled
+                        {% elif request.status == 'Resolved' %}
+                        Resolved
+                        {% endif %}
+                    </td>
+                    <td class="d-none d-sm-table-cell">{{ request.created_at.strftime('%d %b %Y %I:%M %p') }}</td>
+                    <td>
+                        {{ yes_button('<i class="bi bi-eye"></i> View', url_for('helpdesk.view_request', request_id=request.request_id), 'btn-sm') }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if requests and pagination %}
+        {{ pagination_nav('Support requests pagination', pagination, 'helpdesk.index', {'status': status_filter, 'priority': priority_filter, 'issue_type': issue_type_filter}) }}
+    {% endif %}
+    {% else %}
+    {% if status_filter or priority_filter or issue_type_filter %}
+        {% set filter_message %}No support requests with 
+            {% if status_filter %}<strong>{{ status_filter }}</strong> status{% endif %}
+            {% if status_filter and (priority_filter or issue_type_filter) %}, {% endif %}
+            {% if priority_filter %}<strong>{{ priority_filter }}</strong> priority{% endif %}
+            {% if priority_filter and issue_type_filter %} and {% endif %}
+            {% if issue_type_filter %}issue type of <strong>{{ issue_type_filter.replace('_', ' ') }}</strong>{% endif %}.{% endset %}
+        {{ no_items_message(filter_message, 'bi-funnel', 'Clear Filters', url_for('helpdesk.index'), true) }}
+    {% else %}
+        {{ no_items_message('No support requests at the moment.', 'bi-inbox', '', '', false) }}
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

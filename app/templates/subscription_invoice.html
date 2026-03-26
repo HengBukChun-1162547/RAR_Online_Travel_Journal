@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Receipt</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="receipt-container">
+        <h2>Payment Receipt</h2>
+        <p>{{payment_details.plan_name}}</p>
+        <p>{{payment_details.start_date}}</p>
+        <p>{{payment_details.end_date}}</p>
+        <p>{{payment_details.payment_date}}</p>
+        <p>{{payment_details.payment_amount}}</p>
+
+        <!-- <div class="view-link">
+            <a href="{{ url_for('view_receipt', payment_id=payment.payment_id) }}" class="btn">View PDF</a>
+        </div> -->
+    </div>
+</body>
+</html>

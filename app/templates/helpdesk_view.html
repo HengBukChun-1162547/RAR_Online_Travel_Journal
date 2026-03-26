@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% from '_macros.html' import content_card, yes_button, no_button, form_submit_button, no_items_message %}
+{% block title %}Support Request Details{% endblock %}
+
+{% block content %}
+
+
+<div class="container-fluid px-2 px-md-4">
+    <div class="d-flex justify-content-end align-items-center mb-4">
+        {{ yes_button('<i class="bi bi-arrow-left"></i> Back to List', url_for('helpdesk.index'), 'btn-outline-secondary') }}
+    </div>
+    
+    <!-- Request details card -->
+    {% set card_header %}Request Details{% endset %}
+    {% set card_content %}
+            <!-- Request Title and Meta Information -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <!-- Title Section -->
+                    <div class="mb-3">
+                        <h4 class="text-dark mb-2">{{ request.request_id }}: {{ request.summary }}</h4>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="badge {% if request.issue_type == 'Bug' %}bg-danger{% elif request.issue_type == 'Help_Request' %}bg-info{% elif request.issue_type == 'Appeal' %}bg-warning{% elif request.issue_type == 'Others' %}bg-primary{% endif %} me-2">
+                                {% if request.issue_type == 'Bug' %}Bug Report{% elif request.issue_type == 'Help_Request' %}Help Request{% elif request.issue_type == 'Appeal' %}Appeal{% elif request.issue_type == 'Others' %}Others{% endif %}
+                            </span>
+                            <span class="badge {% if request.status == 'New' %}bg-info{% elif request.status == 'Open' %}bg-warning{% elif request.status == 'Stalled' %}bg-secondary{% else %}bg-success{% endif %}">
+                                {{ request.status }}
+                            </span>
+                            {% if request.priority == 'High' %}
+                            <span class="badge bg-danger">High Priority</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row text-muted small">
+                        <div class="col-md-3 mb-2">
+                            <div><strong>Created By:</strong></div>
+                            <div>{{ request.creator_name }}</div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div><strong>Assigned To:</strong></div>
+                            <div>
+                                {% if request.assignee_name %}
+                                    <span class="badge bg-success">{{ request.assignee_name }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Unassigned</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div><strong>Created:</strong></div>
+                            <div>{{ request.created_at.strftime('%d %b %Y at %I:%M %p') }}</div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div><strong>Last Updated:</strong></div>
+                            <div>{{ request.updated_at.strftime('%d %b %Y at %I:%M %p') }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 col-lg-6">
+                    <h5 class="mb-3">Issue Description:</h5>
+                    {% set description_text = request.description %}
+                    {% if description_text|length > 200 %}
+                        <p class="text-break small" 
+                           style="white-space: pre-wrap;" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           data-bs-title="{{ description_text }}"
+                           title="{{ description_text }}">
+                            {{ description_text[:200] }}...
+                        </p>
+                    {% else %}
+                        <p class="text-break small" style="white-space: pre-wrap;">{{ description_text }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-12 col-lg-6">
+                    <h5 class="mb-3"><i class="bi bi-image"></i> Screenshot</h5>
+                    {% if request.screenshot_path %}
+                    {% set filename = request.screenshot_path.split('\\')[-1] if '\\' in request.screenshot_path else request.screenshot_path.split('/')[-1] %}
+                    <div class="text-center">
+                        <img src="{{ url_for('static', filename='uploads/support/' + filename) }}" 
+                             class="img-fluid img-thumbnail cursor-pointer border" 
+                             style="max-height: 300px; cursor: pointer; border-radius: 8px;" 
+                             alt="Issue Screenshot"
+                             data-bs-toggle="modal" 
+                             data-bs-target="#screenshotModal">
+                        <p class="text-muted small mt-2">Click to enlarge</p>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted p-4 border rounded" style="background-color: #f8f9fa;">
+                        <i class="bi bi-image display-4"></i>
+                        <p class="mt-2 mb-0">No screenshot provided</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+    {% endset %}
+    <div class="mb-4">
+        {{ content_card(card_header, card_content, '', true) }}
+    </div>
+
+    <!-- Actions & Comments Card -->
+    {% set staff_card_header %}Actions{% endset %}
+    {% set staff_card_content %}
+            {% if is_staff %}
+            <!-- Staff Actions Section -->
+            <div class="row">
+                <div class="col-12">
+                    <h5 class="mb-3"><i class="bi bi-tools"></i> Staff Actions</h5>
+                    
+                    <!-- Quick Action Buttons -->
+                    <div class="row mb-4">
+                        {% if has_permission('take_request') and not request.assignee_id %}
+                        <div class="col-md-6 mb-2">
+                            <form action="{{ url_for('helpdesk.update_status', request_id=request.request_id) }}" method="POST" class="w-100">
+                                <input type="hidden" name="status" value="{{ request.status }}">
+                                <input type="hidden" name="action" value="take">
+                                {{ form_submit_button('<i class="bi bi-hand-index-thumb"></i> Take Responsibility', 'btn-md w-100') }}
+                            </form>
+                        </div>
+                        {% endif %}
+
+                        {% if has_permission('drop_request') and request.assignee_id == session.user_id and request.status != 'Resolved'%}
+                        <div class="col-md-6 mb-2">
+                            <form action="{{ url_for('helpdesk.update_status', request_id=request.request_id) }}" method="POST" class="w-100">
+                                <input type="hidden" name="status" value="{{ request.status }}">
+                                <input type="hidden" name="action" value="drop">
+                                <button type="submit" class="btn btn-md w-100" style="background-color: rgba(220, 53, 69, 0.8); color: white; border: none; border-radius: 50px; padding: 0.375rem 1.25rem; font-weight: 500; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='rgb(220, 53, 69)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.backgroundColor='rgba(220, 53, 69, 0.8)'; this.style.transform='translateY(0)';">
+                                    <i class="bi bi-hand-index-thumb-fill"></i> Drop Request
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Assignment and Status Forms -->
+                    <div class="row">
+                        <!-- Assignment Form -->
+                        {% if staff_users and request.status != 'Resolved' %}
+                        <div class="col-lg-6 mb-4">
+                            {% if request.assignee_id != None %}
+                            <!-- Request is already assigned - show disabled form -->
+                            <form>
+                                <div class="mb-3">
+                                    <label for="assignee_id_disabled" class="form-label">Assign To</label>
+                                    <select class="form-select" id="assignee_id_disabled" disabled>
+                                        <option value="">Select Staff Member</option>
+                                        {% for staff in staff_users %}
+                                        <option value="{{ staff.user_id }}" {% if staff.user_id == request.assignee_id %}selected{% endif %}>
+                                            {{ staff.username }} ({{ staff.role_name|title }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-md w-100" disabled style="background-color: #6c757d; color: white; border: none; border-radius: 50px; padding: 0.375rem 1.25rem; font-weight: 500;">
+                                    <i class="bi bi-check2-circle"></i> Already Assigned
+                                </button>
+                            </form>
+                            {% else %}
+                            <!-- Request is unassigned - show active form -->
+                            <form action="{{ url_for('helpdesk.update_status', request_id=request.request_id) }}" method="POST">
+                                <div class="mb-3">
+                                    <label for="assignee_id" class="form-label">Assign To</label>
+                                    <select class="form-select" id="assignee_id" name="assignee_id" required>
+                                        <option value="">Select Staff Member</option>
+                                        {% for staff in staff_users %}
+                                        <option value="{{ staff.user_id }}">
+                                            {{ staff.username }} ({{ staff.role_name|title }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <input type="hidden" name="status" value="{{ request.status }}">
+                                <input type="hidden" name="action" value="assign">
+                                {{ form_submit_button('<i class="bi bi-check2-circle"></i> Confirm', 'btn-md w-100') }}
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Status Update Form -->
+                        <div class="col-lg-6 mb-4">
+                            {% if can_modify %}
+                            <form action="{{ url_for('helpdesk.update_status', request_id=request.request_id) }}" method="POST">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Status</label>
+                                    <select class="form-select" id="status" name="status">
+                                        <option value="New" {% if request.status == 'New' %}selected{% endif %} 
+                                                {% if request.status in ['Open', 'Stalled', 'Resolved'] %}disabled{% endif %}>
+                                            New{% if request.status in ['Open', 'Stalled', 'Resolved'] %} (Cannot revert){% endif %}
+                                        </option>
+                                        <option value="Open" {% if request.status == 'Open' %}selected{% endif %}>Open</option>
+                                        <option value="Stalled" {% if request.status == 'Stalled' %}selected{% endif %}>Stalled</option>
+                                        <option value="Resolved" {% if request.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+                                    </select>
+                                </div>
+                                
+                                <input type="hidden" name="action" value="update">
+                                {{ form_submit_button('<i class="bi bi-check2-circle"></i> Update Status', 'btn-md w-100') }}
+                            </form>
+                            {% else %}
+                            <div class="mb-3">
+                                <label for="status_readonly" class="form-label">Current Status</label>
+                                <select class="form-select" id="status_readonly" disabled>
+                                    <option {% if request.status == 'New' %}selected{% endif %}>New</option>
+                                    <option {% if request.status == 'Open' %}selected{% endif %}>Open</option>
+                                    <option {% if request.status == 'Stalled' %}selected{% endif %}>Stalled</option>
+                                    <option {% if request.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+                                </select>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Comments Section -->
+            <div class="row">
+                <div class="col-12">
+                    <h5 class="mb-3"><i class="bi bi-chat-left-dots"></i> Comments</h5>
+                    
+                    <!-- Existing comments list -->
+                    {% if comments %}
+                        <div class="comments-list mb-4">
+                            {% for comment in comments %}
+                                <div class="comment-item mb-3 p-3 {% if comment.user_id == request.user_id %}bg-light{% else %}bg-info bg-opacity-10{% endif %} rounded">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <strong>{{ comment.username }}</strong> 
+                                            {% if comment.user_id == request.user_id %}
+                                                <span class="badge bg-secondary">Requester</span>
+                                            {% elif comment.user_id == request.assignee_id %}
+                                                <span class="badge bg-primary">Assignee</span>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">{{ comment.created_at.strftime('%d %b %Y , %I:%M %p') }}</small>
+                                    </div>
+                                    <div class="comment-content" style="white-space: pre-wrap;">
+                                        {{ comment.comment }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="mb-4">
+                            {{ no_items_message('No comments yet.', 'bi-chat-left-dots', '', '', false) }}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Add comment form -->
+                    {% if request.status != 'Resolved' and can_comment %}
+                        <form action="{{ url_for('helpdesk.add_comment', request_id=request.request_id) }}" method="POST">
+                            <div class="mb-3">
+                                <label for="comment" class="form-label">Add Comment</label>
+                                <textarea class="form-control" id="comment" name="comment" rows="3" required minlength="2" title="Please enter at least 2 non-space characters."></textarea>
+                            </div>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                {{ form_submit_button('<i class="bi bi-send"></i> Send Comment') }}
+                            </div>
+                        </form>
+                    {% elif request.status == 'Resolved' %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> This request is resolved. No more comments can be added.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+    {% endset %}
+    {{ content_card(staff_card_header, staff_card_content, '', true) }}
+
+    <!-- Screenshot Modal -->
+    {% if request.screenshot_path %}
+    <div class="modal fade" id="screenshotModal" tabindex="-1" aria-labelledby="screenshotModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="screenshotModalLabel">Screenshot - Request {{ request.request_id }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    {% set filename = request.screenshot_path.split('\\')[-1] if '\\' in request.screenshot_path else request.screenshot_path.split('/')[-1] %}
+                    <img src="{{ url_for('static', filename='uploads/support/' + filename) }}" 
+                         class="img-fluid" 
+                         alt="Issue Screenshot"
+                         style="max-width: 100%; height: auto;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Initialize Bootstrap tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import yes_button, pagination_nav, search_card %}
+
+{% block title %}Users' list{% endblock %}
+
+{# Set the active page to be highlighted in the navigation bar. #}
+{% set active_page = 'users' %}
+
+{% block content %}
+
+<!-- The purpose of this page is to show all account users in table style on this html page. --> 
+<!-- It also provides access to each linked profile page and buttons for each profile detail are available if needed. -->
+<!-- Only admin users are allowed and authorized to manage this page and edit the each profile's role and account status. -->
+<!-- A search bar is provided to search the users' email address or first name or last name or username. -->
+<!-- A dropdown menu is provided to sort the user role and status if the current user is not admin.-->
+<!-- The onchange attribute is applied to automatically submit the form when the selection changes -->
+<!-- Users consists of a list which contains multiple dictionary which contains key-value pairs. The key of each dictionary includes user_id, username, email, first_name, last_name, location, profile_image, description, role and status. -->
+
+<h2 class="text-dark mb-3">All Users</h2>
+
+{% set search_content %}
+<form action="/users" method="GET" id="userSearchForm">
+    <div class="row g-3">
+        <div class="col-12 col-md-4 col-lg-3">
+            <select name="filter" class="form-select">
+                <option value="" {% if not filter_type or filter_type == 'All' %}selected{% endif %}>Filter by role</option>
+                <option value="Traveller" {% if filter_type == 'Traveller' %}selected{% endif %}>Traveller</option>
+                <option value="Editor" {% if filter_type == 'Editor' %}selected{% endif %}>Editor</option>
+                <option value="Admin" {% if filter_type == 'Admin' %}selected{% endif %}>Admin</option>
+                <option value="Support_tech" {% if filter_type == 'Support_tech' %}selected{% endif %}>Support Tech</option>
+                <option value="Trial" {% if filter_type == 'Trial' %}selected{% endif %}>Trial</option>
+                <option value="Premium" {% if filter_type == 'Premium' %}selected{% endif %}>Premium</option>
+                <option value="Staffs" {% if filter_type == 'Staffs' %}selected{% endif %}>Staffs</option>
+                <option value="Block" {% if filter_type == 'Block' %}selected{% endif %}>Restricted</option>
+                <option value="All Users" {% if filter_type == 'All Users' %}selected{% endif %}>All</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-4 col-lg-5">
+            <input class="form-control" autocomplete="off" id="searchInput" name="q" placeholder="Search by username, first/last name, email" value="{{ request.args.get('q', '') }}">
+        </div>
+        <div class="col-12 col-md-4 col-lg-4">
+            <div class="d-flex gap-2 justify-content-center justify-content-md-end">
+                <button type="submit" class="btn btn-sm" style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px; padding: 0.25rem 1rem; font-weight: 500; transition: all 0.3s ease; min-width: 45px;" onmouseover="this.style.backgroundColor='rgb(18, 210, 15)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.backgroundColor='rgba(18, 210, 15, 0.698)'; this.style.transform='translateY(0)';">
+                    <i class="bi bi-search"></i>
+                </button>
+                <button type="button" class="btn btn-sm" onclick="resetForm()" style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px; padding: 0.25rem 1rem; font-weight: 500; transition: all 0.3s ease; min-width: 45px;" onmouseover="this.style.backgroundColor='rgb(18, 210, 15)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.backgroundColor='rgba(18, 210, 15, 0.698)'; this.style.transform='translateY(0)';">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+<script>
+function resetForm() {
+    document.getElementById('searchInput').value = '';
+    document.querySelector('select[name="filter"]').value = '';
+    document.getElementById('userSearchForm').submit();
+}
+</script>
+{% endset %}
+{{ search_card('Search Users', search_content) }}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                <tr>
+                    <th scope="col">Profile Image</th>
+                    <th scope="col">Username</th>
+                    <th scope="col" class="d-none d-lg-table-cell">First Name</th>
+                    <th scope="col" class="d-none d-lg-table-cell">Last Name</th>
+                    <th scope="col" class="d-none d-lg-table-cell">Email</th>
+                    <th scope="col" class="d-none d-lg-table-cell">Role</th>
+                    <th scope="col" class="d-none d-lg-table-cell">Status</th>
+                    <th scope="col">Profile</th>
+                </tr>
+                </thead>
+                
+                <tbody>               
+                {% for user in users %}       <!-- For statement applied for table display of users' detail. -->
+                    <tr>        
+                        <td class="align-middle">
+                            {% if user.profile_image == None %} <!-- Show profile image-->
+                            <div class="rounded-circle d-flex justify-content-center align-items-center bg-light mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-person-circle text-secondary" style="font-size: 36px;"></i>
+                            </div>
+                            {% else %}
+                                <img src="/static/{{ user['profile_image'] }}" alt="{{ user.username }}" class="rounded-circle mb-2" style="width: 60px; height: 60px; object-fit: cover;">
+                            {% endif %}
+                        </td>  
+                        <td class="align-middle">{{ user['username'] }}</td>  
+                        <td class="align-middle d-none d-lg-table-cell">
+                            {% if user['first_name'] == None %}
+                                &nbsp;              <!-- Displays a blank space for zero -->
+                            {% else %}
+                                {{ user['first_name'] }}
+                            {% endif %}
+                        </td>
+                        <td class="align-middle d-none d-lg-table-cell">
+                            {% if user['last_name'] == None %}
+                                &nbsp;              <!-- Displays a blank space for zero -->
+                            {% else %}
+                                {{ user['last_name'] }}
+                            {% endif %}
+                        </td>    
+                        <td class="align-middle d-none d-lg-table-cell">
+                        {{ user['email'] }} <!-- Displays the email address without the domain part. -->
+                        </td>
+                        <td class="align-middle d-none d-lg-table-cell"> <!-- A dropdown form provided to update the user's account role.-->
+                          
+                            <form class="form-horizontal p-2" id="role_form" name="role_form" action="/users" method="POST">
+                                <input type="hidden" name="user_id" value="{{ user['user_id'] }}">
+                                <input type="hidden" name="page" value="user_list">
+                                <input type="hidden" name="q" value="{{ request.args.get('q', '') }}">
+                                <input type="hidden" name="filter" value="{{ request.args.get('filter', '') }}">
+                                <select name="role" class="form-select w-auto" 
+                                {% if session['user_id'] == user['user_id'] or session['role'] == 'support_tech' %}disabled title="You cannot change the role."{% endif %} 
+                                onchange="if (!confirm('Are you sure you want to change the user role?')) { this.value = this.dataset.previousValue; } else { this.dataset.previousValue = this.value; this.form.submit(); }" data-previous-value="{{ user['role'] }}">
+                                    <option value="traveller" {% if user['role'] == 'traveller' %}selected{% endif %}>🧳 Traveller</option>
+                                    <option value="editor" {% if user['role'] == 'editor' %}selected{% endif %}>✍ Editor</option>
+                                    <option value="admin" {% if user['role'] == 'admin' %}selected{% endif %}>🔧 Admin</option>
+                                    <option value="premium" {% if user['role'] == 'premium' %}selected{% endif %} disabled>✨ Premium</option>
+                                    <option value="trial" {% if user['role'] == 'trial' %}selected{% endif %} >🔍 Trial</option>
+                                    <option value="support_tech" {% if user['role'] == 'support_tech' %}selected{% endif %}>🛠️ Support Tech</option>
+                                </select>
+                            </form>
+                            
+                        </td>
+                        <td class="align-middle d-none d-lg-table-cell"> <!-- A dropdown form provided to update the user's account status.-->
+                            <form class="form-horizontal p-2" id="status_form" name="status_form" action="/users" method="POST">
+                                <input type="hidden" name="user_id" value="{{ user['user_id'] }}">
+                                <input type="hidden" name="page" value="user_list">
+                                <input type="hidden" name="q" value="{{ request.args.get('q', '') }}">
+                                <input type="hidden" name="filter" value="{{ request.args.get('filter', '') }}">
+                                <select name="status" class="form-select w-auto" {% if session['user_id'] == user['user_id'] %}disabled title="You cannot change your own account status."{% endif %} onchange="if (!confirm('Are you sure you want to change the user status?')) { this.value = this.dataset.previousValue; } else { this.dataset.previousValue = this.value; this.form.submit(); }" data-previous-value="{{ user['status'] }}">
+                                    <option value="active" {% if user['status'] == 'active' %}selected{% endif %}>✅ Active</option>
+                                    <option value="banned" {% if user['status'] == 'banned' %}selected{% endif %}>🚫 Banned</option>
+                                    <option value="restricted" {% if user['status'] == 'restricted' %}selected{% endif %}>⚠ Block</option>
+                                </select>
+                            </form>
+                        </td>
+                        <td class="align-middle">
+                            {{ yes_button('<i class="bi bi-eye"></i> <span class="d-none d-sm-inline">View</span>', url_for('user.view_other_profile', selected_user_id=user['user_id'], page='UserManagement'), 'btn-sm') }}
+                        </td>       
+                        <!-- A link to access certain profile detail.-->                                 
+                    </tr>                  
+                {% endfor %}   
+            </tbody>         
+            </table>
+            <!-- Pagination using component library -->
+            {{ pagination_nav('Users pagination', pagination, 'user.users', {'q': request.args.get('q', ''), 'filter': request.args.get('filter', '')}) }}
+        </div>
+{% endblock %}

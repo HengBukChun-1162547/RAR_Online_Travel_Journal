@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from '_macros.html' import content_card, title_input, description_textarea, no_button, form_submit_button %}
+{% block title %}
+    {% if action == "edit" %}Edit Announcement{% else %}Create Announcement{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    {% set card_content %}
+        <form method="POST" class="needs-validation" action="{{ url_for('user.edit_announcement', announcement_id=announcement.announcement_id) if action == 'edit' else url_for('user.create_announcement') }}" id="announcementForm" novalidate>
+            
+            {{ title_input('title', announcement.title if action == 'edit' else '', 50, 5) }}
+            
+            {{ description_textarea('description', announcement.description if action == 'edit' else '', 10, 5, 300, false, '', 'bi-megaphone') }}
+            
+            <div class="d-flex justify-content-between mt-4">
+                {{ no_button('<i class="bi bi-x-circle"></i> Cancel', url_for('user.inform')) }}
+                {{ form_submit_button('<i class="bi bi-check-circle"></i> ' + ('Save Changes' if action == 'edit' else 'Create Announcement')) }}
+            </div>
+        </form>
+    {% endset %}
+    {{ content_card(('Edit Announcement' if action == 'edit' else 'Create New Announcement'), card_content, '', true) }}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Character counter for description textarea
+    const descriptionInput = document.getElementById('description');
+    const descriptionCounter = document.getElementById('descriptionCounter');
+    
+    if (descriptionInput && descriptionCounter) {
+        function updateDescriptionCounter() {
+            const currentLength = descriptionInput.value.length;
+            const maxLength = parseInt(descriptionInput.getAttribute('maxlength'));
+            descriptionCounter.textContent = currentLength + '/' + maxLength;
+            
+            // Update color based on character count
+            if (currentLength > maxLength * 0.8) {
+                descriptionCounter.classList.add('text-warning');
+                descriptionCounter.classList.remove('text-muted');
+            } else if (currentLength > maxLength * 0.9) {
+                descriptionCounter.classList.add('text-danger');
+                descriptionCounter.classList.remove('text-muted', 'text-warning');
+            } else {
+                descriptionCounter.classList.add('text-muted');
+                descriptionCounter.classList.remove('text-warning', 'text-danger');
+            }
+        }
+        
+        // Update counter on input
+        descriptionInput.addEventListener('input', updateDescriptionCounter);
+        
+        // Initialize counter
+        updateDescriptionCounter();
+    }
+    
+    // Initialize title counter using global function from notification.js
+    if (typeof initializeTitleCounter === 'function') {
+        initializeTitleCounter();
+    }
+});
+</script>
+{% endblock %}

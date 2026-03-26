@@ -1,0 +1,580 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import yes_button, no_items_message, pagination_nav, form_submit_button %}
+{% block title %}Departure Board{% endblock %}
+
+{% if events %}
+    <div class="shadow-sm p-3 mb-3 bg-primary-subtle rounded text-center">
+        Found {{ events|length }} events. 
+        Total: {{ pagination.total }}
+        Page: {{ pagination.page }} of {{ pagination.pages }}
+    </div>
+{% else %}
+    <div class="shadow-sm p-3 mb-3 bg-warning-subtle rounded text-center">
+        No events found.
+        {% if followed_journeys or followed_users or followed_locations %}
+            You are following:
+            {% if followed_journeys %}{{ followed_journeys|length }} journeys{% endif %}
+            {% if followed_users %}{{ followed_users|length }} users{% endif %}
+            {% if followed_locations %}{{ followed_locations|length }} locations{% endif %}
+        {% else %}
+            You are not following any content.
+        {% endif %}
+    </div>
+{% endif %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="text-dark mb-4">Departure Board</h2>
+            
+            <!-- Filter options -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8 mb-2 mb-md-0">
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('departure_board.index') }}" class="btn {% if not filter_type %}btn-info{% else %}btn-outline-info{% endif %}">All</a>
+                                <a href="{{ url_for('departure_board.index', filter='journey') }}" class="btn {% if filter_type == 'journey' %}btn-info{% else %}btn-outline-info{% endif %}">Journeys</a>
+                                <a href="{{ url_for('departure_board.index', filter='user') }}" class="btn {% if filter_type == 'user' %}btn-info{% else %}btn-outline-info{% endif %}">Users</a>
+                                <a href="{{ url_for('departure_board.index', filter='location') }}" class="btn {% if filter_type == 'location' %}btn-info{% else %}btn-outline-info{% endif %}">Locations</a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="d-flex justify-content-md-end align-items-center">
+                                <select id="perPageSelect" class="form-select form-select-sm me-2" aria-label="Items per page" style="width: auto;">
+                                    <option value="10" {% if pagination.per_page == 10 %}selected{% endif %}>10 per page</option>
+                                    <option value="20" {% if pagination.per_page == 20 %}selected{% endif %}>20 per page</option>
+                                    <option value="50" {% if pagination.per_page == 50 %}selected{% endif %}>50 per page</option>
+                                </select>
+                                {{ yes_button('Refresh', url_for('departure_board.index', filter=filter_type), 'btn-sm') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <!-- Left Column: Followed Content -->
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Following</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Followed Journeys -->
+                            <h6>Journeys ({{ followed_journeys|length }})</h6>
+                            {% if followed_journeys %}
+                                <div class="list-group mb-3 followed-list" style="max-height: 200px; overflow-y: auto;">
+                                    {% for journey in followed_journeys %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span class="text-truncate me-2">{{ journey.title }}</span>
+                                        <form action="{{ url_for('departure_board.unfollow', follow_type='journey', follow_id=journey.journey_id, filter=filter_type, page=pagination.page) }}" method="post" class="d-inline">
+                                            {{ form_submit_button('<i class="bi bi-x-circle"></i>', 'btn-sm') }}
+                                        </form>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted small">No journeys followed</p>
+                            {% endif %}
+                            
+                            <!-- Followed Users -->
+                            <h6>Users ({{ followed_users|length }})</h6>
+                            {% if followed_users %}
+                                <div class="list-group mb-3 followed-list" style="max-height: 200px; overflow-y: auto;">
+                                    {% for user in followed_users %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span class="text-truncate me-2">{{ user.username }}</span>
+                                        <form action="{{ url_for('departure_board.unfollow', follow_type='user', follow_id=user.followed_id, filter=filter_type, page=pagination.page) }}" method="post" class="d-inline">
+                                            {{ form_submit_button('<i class="bi bi-x-circle"></i>', 'btn-sm') }}
+                                        </form>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted small">No users followed</p>
+                            {% endif %}
+                            
+                            <!-- Followed Locations -->
+                            <h6>Locations ({{ followed_locations|length }})</h6>
+                            {% if followed_locations %}
+                                <div class="list-group followed-list" style="max-height: 200px; overflow-y: auto;">
+                                    {% for location in followed_locations %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span class="text-truncate me-2">{{ location.name }}</span>
+                                        <form action="{{ url_for('departure_board.unfollow', follow_type='location', follow_id=location.location_id, filter=filter_type, page=pagination.page) }}" method="post" class="d-inline">
+                                            {{ form_submit_button('<i class="bi bi-x-circle"></i>', 'btn-sm') }}
+                                        </form>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted small">No locations followed</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column: Events Feed -->
+                <div class="col-md-8">
+                    {% if events %}
+                        <div class="card-body p-0">
+                            <div class="events-container">
+                                {% for event in events %}
+                                <div class="card mb-3 event-card">
+                                    <div class="card-body">
+                                        <!-- Event Header: Title -->
+                                        <h5 class="card-title">{{ event.title }}</h5>
+                                        
+                                        <!-- Event Metadata: Journey, User, Dates -->
+                                        <div class="mb-3">
+                                            <div class="text-muted small mb-1">
+                                                <span>
+                                                    Journey: <a href="{{ url_for('journey.journey_detail', journey_id=event.journey_id) }}">{{ event.journey_title }}</a>
+                                                </span>
+                                                <span class="mx-2">|</span>
+                                                <span>
+                                                    User: {{ event.username }}
+                                                </span>
+                                            </div>
+                                            <div class="text-muted small">
+                                                <span>Start: {{ event.start_date.strftime('%d %b %Y') }}</span>
+                                                {% if event.end_date %}
+                                                <span class="mx-2">|</span>
+                                                <span>End: {{ event.end_date.strftime('%d %b %Y') }}</span>
+                                                {% endif %}
+                                                <span class="mx-2">|</span>
+                                                <span><span class="badge bg-secondary">Updated</span> {{ event.update_time.strftime('%d %b %Y %I:%M %p') }}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Event Content: Two-Column Layout (Image + Description) -->
+                                        <div class="row">
+                                            <!-- Left Column: Image (or placeholder) -->
+                                            <div class="col-md-5 mb-3">
+                                                {% if event.images %}
+                                                <!-- Image Carousel -->
+                                                <div id="carousel-{{ event.event_id }}" class="carousel slide" data-bs-ride="false">
+                                                    <div class="carousel-inner">
+                                                        {% for image in event.images %}
+                                                        <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                                            <img src="{{ url_for('static', filename=image.image_path) }}" 
+                                                                class="d-block w-100 rounded cursor-pointer" 
+                                                                style="object-fit: cover; height: 200px;" 
+                                                                alt="Event image"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#eventCarouselModal-{{ event.event_id }}">
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                    {% if event.images|length > 1 %}
+                                                    <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ event.event_id }}" data-bs-slide="prev">
+                                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                        <span class="visually-hidden">Previous</span>
+                                                    </button>
+                                                    <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ event.event_id }}" data-bs-slide="next">
+                                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                        <span class="visually-hidden">Next</span>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                                {% else %}
+                                                <!-- Image Placeholder -->
+                                                <div class="rounded bg-light d-flex justify-content-center align-items-center" style="height: 200px;">
+                                                    <div class="text-center text-muted">
+                                                        <i class="bi bi-image fs-1"></i>
+                                                        <p class="mt-2 mb-0 small">No images available</p>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <!-- Right Column: Description and Location -->
+                                            <div class="col-md-7">
+                                                <!-- Description Section with fixed height -->
+                                                <div class="event-description mb-3" style="min-height: 100px; max-height: 150px; overflow-y: auto;">
+                                                    {% if event.description %}
+                                                        {{ event.description }}
+                                                    {% else %}
+                                                        <p class="text-muted">No description available</p>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <!-- Location Information -->
+                                                <div class="mb-3">
+                                                    <strong><i class="bi bi-geo-alt"></i> Location:</strong>
+                                                    <span>{{ event.location_name }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Follow Reasons -->
+                                        <div class="mt-2 follow-reasons" style="min-height: 30px;">
+                                            {% if event.reasons %}
+                                            <small class="text-muted">Followed:</small>
+                                            {% for reason in event.reasons %}
+                                                {% if reason.type == 'journey' %}
+                                                    <span class="badge bg-primary ms-1" title="You follow journey: {{ reason.name }}">
+                                                        <i class="bi bi-journal"></i>
+                                                    </span>
+                                                {% elif reason.type == 'user' %}
+                                                    <span class="badge bg-success ms-1" title="You follow user: {{ reason.name }}">
+                                                        <i class="bi bi-person"></i>
+                                                    </span>
+                                                {% elif reason.type == 'location' %}
+                                                    <span class="badge bg-info ms-1" title="You follow location: {{ reason.name }}">
+                                                        <i class="bi bi-geo-alt"></i>
+                                                    </span>
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% else %}
+                                            <small class="text-muted">No follow reasons available</small>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Action Buttons -->
+                                        <div class="mt-3">
+                                            {{ yes_button('<i class="bi bi-journal"></i> View Full Journey', url_for('journey.journey_detail', journey_id=event.journey_id), 'btn-sm') }}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Pagination -->
+                            {% if pagination.pages > 1 %}
+                            {{ pagination_nav('Departure board pagination', pagination, 'departure_board.index', {'filter': filter_type, 'per_page': pagination.per_page}) }}
+                            {% endif %}
+                            
+                            <!-- Events Count Display -->
+                            <div class="text-center text-muted small mb-3">
+                                Showing {{ events|length }} of {{ pagination.total }} events
+                                {% if pagination.total > 0 %}
+                                (Page {{ pagination.page }} of {{ pagination.pages }})
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Empty State -->
+                        <div class="card">
+                            <div class="card-body">
+                                {{ no_items_message("No events to display", "bi-calendar-x", "", "", false) }}
+                                <div class="text-center">
+                                    <p class="text-muted">
+                                        You're not following any content yet, or there are no events
+                                        from the content you're following.
+                                    </p>
+                                    <p class="text-muted">
+                                        You can follow journeys, users, or locations while browsing
+                                        public journeys.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .event-card {
+        transition: transform 0.2s;
+    }
+    .event-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Tooltip for follow reasons */
+    [title] {
+        position: relative;
+        cursor: help;
+    }
+
+    .update-badge {
+        background-color: #6c757d;
+        color: white;
+        font-size: 0.75em;
+        padding: 1px 5px;
+        border-radius: 3px;
+        margin-right: 3px;
+    }
+    
+    .carousel {
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    .cursor-pointer:hover {
+        opacity: 0.9;
+    }
+    
+    .carousel-control-prev,
+    .carousel-control-next {
+        width: 10%;
+        opacity: 0.7;
+    }
+    
+    .carousel-control-prev:hover,
+    .carousel-control-next:hover {
+        opacity: 1;
+    }
+    
+    /* Event description styling */
+    .event-description {
+        border: 1px solid #f0f0f0;
+        border-radius: 4px;
+        padding: 10px;
+        background-color: #fafafa;
+    }
+    
+    /* Follow reasons section styling */
+    .follow-reasons {
+        border-top: 1px solid #f0f0f0;
+        padding-top: 10px;
+    }
+    
+    /* Modal styling */
+    .modal .carousel {
+        background-color: #f8f9fa;
+    }
+    
+    .modal-xl .modal-content {
+        background-color: #f8f9fa;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+    
+    .modal-xl .modal-header {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .modal-xl .modal-title {
+        color: #212529;
+    }
+    
+    .modal-xl .btn-close {
+        filter: none;
+    }
+    
+    .modal .carousel-control-prev-icon,
+    .modal .carousel-control-next-icon {
+        background-color: rgba(52, 58, 64, 0.7);
+        border-radius: 50%;
+        padding: 10px;
+        width: 40px;
+        height: 40px;
+    }
+    
+    .carousel-counter {
+        background-color: rgba(52, 58, 64, 0.75) !important;
+        color: white !important;
+        border-radius: 4px;
+    }
+    
+    /* Pagination styling */
+    .pagination {
+        margin-bottom: 0;
+    }
+    
+    .page-link {
+        color: #0d6efd;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+    }
+    
+    .page-link:hover {
+        color: #0a58ca;
+        background-color: #e9ecef;
+        border-color: #dee2e6;
+    }
+    
+    .page-item.active .page-link {
+        z-index: 3;
+        color: #fff;
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .pagination-summary {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    /* Followed list styling */
+    .followed-list {
+        max-height: 200px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
+    
+    .followed-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .followed-list::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    
+    .followed-list::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+    }
+    
+    .followed-list::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    
+    /* Improved list items and buttons for mobile devices */
+    @media (max-width: 767.98px) {
+        .list-group-item {
+            padding: 0.75rem 1rem;
+        }
+        
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            min-height: 38px;
+            min-width: 38px;
+        }
+        
+        /* Ensure titles don't get truncated too much */
+        .text-truncate {
+            max-width: 70%;
+        }
+        
+        /* More compact pagination on mobile */
+        .pagination .page-link {
+            padding: 0.25rem 0.5rem;
+        }
+    }
+    
+    /* Increase touch area for all touch devices */
+    @media (any-pointer: coarse) {
+        .btn-sm {
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-link {
+            min-height: 38px;
+            min-width: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
+</style>
+
+<script>
+    // Initialize tooltips for follow reason badges
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+        
+        // Initialize carousels in modals
+        var eventModals = document.querySelectorAll('[id^="eventCarouselModal-"]');
+        eventModals.forEach(function(modal) {
+            modal.addEventListener('show.bs.modal', function() {
+                var carouselId = this.querySelector('.carousel').id;
+                var carousel = new bootstrap.Carousel(document.getElementById(carouselId), {
+                    interval: false,
+                    keyboard: true
+                });
+                
+                // Initialize counter if it exists
+                var counter = this.querySelector('.carousel-counter');
+                if (counter) {
+                    var currentSlide = counter.querySelector('.current-slide');
+                    
+                    document.getElementById(carouselId).addEventListener('slid.bs.carousel', function(e) {
+                        currentSlide.textContent = e.to + 1;
+                    });
+                }
+            });
+        });
+        
+        // Handle per-page select changes
+        document.getElementById('perPageSelect').addEventListener('change', function() {
+            var perPage = this.value;
+            var currentUrl = new URL(window.location.href);
+            
+            // Update or add per_page parameter
+            currentUrl.searchParams.set('per_page', perPage);
+            
+            // Reset to page 1 when changing items per page
+            currentUrl.searchParams.set('page', '1');
+            
+            // Navigate to the new URL
+            window.location.href = currentUrl.toString();
+        });
+    });
+</script>
+
+<!-- Image Modals -->
+{% for event in events %}
+{% if event.images %}
+<div class="modal fade" id="eventCarouselModal-{{ event.event_id }}" tabindex="-1" aria-labelledby="eventCarouselLabel-{{ event.event_id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventCarouselLabel-{{ event.event_id }}">
+                    {{ event.title }} - Photos
+                    <small class="text-muted">({{ event.images|length }} images)</small>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="fullCarousel-{{ event.event_id }}" class="carousel slide" data-bs-ride="false" data-bs-interval="false">
+                    <div class="carousel-inner">
+                        {% for image in event.images %}
+                        <div class="carousel-item {% if loop.first %}active{% endif %}">
+                            <div class="d-flex justify-content-center align-items-center" style="height: 80vh;">
+                                <img src="{{ url_for('static', filename=image.image_path) }}" 
+                                    class="img-fluid" 
+                                    style="max-height: 80vh; object-fit: contain;" 
+                                    alt="{{ event.title }}">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if event.images|length > 1 %}
+                    <button class="carousel-control-prev" type="button" data-bs-target="#fullCarousel-{{ event.event_id }}" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#fullCarousel-{{ event.event_id }}" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                    
+                    <div class="carousel-counter position-absolute top-0 start-0 m-3 bg-dark bg-opacity-75 text-white px-2 py-1 rounded">
+                        <span class="current-slide">1</span>/<span class="total-slides">{{ event.images|length }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer py-1">
+                <small class="text-muted">
+                    <i class="bi bi-keyboard"></i> Use keyboard arrows ← → to navigate
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}

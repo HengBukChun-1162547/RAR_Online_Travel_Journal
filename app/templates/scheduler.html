@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from '_macros.html' import content_card, form_submit_button, no_items_message, date_input %}
+{% block title %}Scheduler{% endblock %} 
+
+{% block content %}
+
+<div class="container-md">
+    <h2 class="text-dark mb-4">Scheduler</h2>
+    
+    {% set card_content %}
+    <div class="mb-4">
+        <p>Manually trigger the scheduler to:</p>
+        <ul>
+          <li>Reset user status upon subscription expiry.</li>
+          <li>Generate subscription expiry notification</li>
+        </ul>
+    </div>
+    
+    <!-- Demo Description -->
+    <div class="shadow-sm p-3 mb-5 bg-warning-subtle rounded">
+      <strong class="text-danger">Demo Only:</strong> This scheduler is for demonstration purposes only. Please make sure demo user only has one subscription record.
+    </div>
+    
+    <!-- User Subscription History -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0">User Subscription History</h6>
+      </div>
+      <div class="card-body">
+        {% if subscription_history %}
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Subscription Type</th>
+                  <th>Start Date</th>
+                  <th>Expiry Date</th>
+                  <th>Active</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for subscription in subscription_history %}
+                <tr>
+                  <td>{{ subscription.subscription_type }}</td>
+                  <td>{{ subscription.start_date.strftime('%d %b %Y') if subscription.start_date else 'N/A' }}</td>
+                  <td>{{ subscription.expiry_date.strftime('%d %b %Y') if subscription.expiry_date else 'N/A' }}</td>
+                  <td>{{ 'Yes' if subscription.is_active else 'No' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          {{ no_items_message('No subscription history found.', 'bi-clock-history', '', '', false) }}
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Date Selection Form -->
+    <form method="POST" action="{{ url_for('scheduler.runscheduler') }}" class="needs-validation" novalidate>
+       <div class="row">
+        <div class="col-md-6">
+          {{ date_input('schedule_date', 'Select Date', '', true, 'bi-calendar3') }}
+        </div>
+      </div>
+      
+      {{ form_submit_button('Run Scheduler') }}
+    </form>
+    {% endset %}
+    {{ content_card('Scheduler Configuration', card_content, '', true) }}
+</div>
+
+{% endblock %}

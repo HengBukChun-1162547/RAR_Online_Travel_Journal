@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% from '_macros.html' import yes_button, no_items_message, content_card %}
+{% block title %} Public Leaderboard{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-10">
+      <h2 class="text-center fw-bold border-bottom pb-2 mb-4" style="color: #212529;">
+        <i class="bi bi-trophy-fill me-2"></i>Public Leaderboard
+      </h2>
+      
+      {% if top_achievers and top_achievers|length > 0 %}
+      <div class="card leaderbord-card">
+        <div class="row justify-content-center">
+          {% if top_achievers|length >= 3 %}
+          <div id="secondplace" class="col-md-2 order-2 order-md-1">
+            <div class="row justify-content-center">
+              <div class="profile-image d-flex justify-content-center mb-2">
+                {% if top_achievers[1].profile_image %}
+                <img src="{{ url_for('static', filename=top_achievers[1].profile_image) }}"
+                  class="rounded-circle border border-3" width="100" height="100" alt="Profile image">
+                {% else %}
+                <i class="bi bi-person-circle text-secondary rounded-circle border border-3 border-white d-inline-flex justify-content-center align-items-center"
+                  style="font-size: 90px;"></i>
+                {% endif %}
+              </div>
+              <div class="d-flex align-items-center justify-content-center mb-2 text-white">
+                {{top_achievers[1].username }}
+              </div>
+            </div>
+            <div class="item text-center" style="height: 100px;">
+              <i class="bi bi-2-circle"></i>
+            </div>
+          </div>
+          <div id="firstplace" class="col-md-2 order-1 order-md-2">
+            <div class="row justify-content-center">
+              <div class="profile-image d-flex justify-content-center mb-2">
+                {% if top_achievers[0].profile_image %}
+                <img src="{{ url_for('static', filename=top_achievers[0].profile_image) }}"
+                  class="rounded-circle border border-3" width="100" height="100" alt="Profile image">
+                {% else %}
+                <div class="d-flex justify-content-center align-items-center rounded-circle border border-3 bg-light"
+                  style="width: 100px; height: 100px;">
+                  <i class="bi bi-person-circle text-secondary rounded-circle border border-3 border-white d-inline-flex justify-content-center align-items-center"
+                    style="font-size: 90px;"></i>
+                </div>
+                <!-- <i class="bi bi-person-circle text-secondary" style="font-size: 70px;"></i> -->
+                {% endif %}
+              </div>
+              <div class="d-flex align-items-center justify-content-center mb-2 text-white">
+                {{top_achievers[0].username }}</div>
+            </div>
+            <div class="item text-center" style="height: 100px;">
+              <i class="bi bi-1-circle"></i>
+            </div>
+          </div>
+          <div id="thirdplace" class="col-md-2 order-3">
+            <div class="row justify-content-center">
+              <div class="profile-image d-flex justify-content-center mb-2">
+                {% if top_achievers[2].profile_image %}
+                <img src="{{ url_for('static', filename=top_achievers[2].profile_image) }}"
+                  class="rounded-circle border border-3" width="100" height="100" alt="Profile image">
+                {% else %}
+                <i class="bi bi-person-circle text-secondary rounded-circle border border-3 border-white d-inline-flex justify-content-center align-items-center"
+                  style="font-size: 90px;"></i>
+                {% endif %}
+              </div>
+              <div class="d-flex align-items-center justify-content-center mb-2 text-white">
+                {{top_achievers[2].username }}</div>
+            </div>
+            <div class="item text-center" style="height: 100px;">
+              <i class="bi bi-3-circle"></i>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="card mb-4">
+        {{ no_items_message('No achievers found yet', 'bi-trophy', '', '', false) }}
+      </div>
+      {% endif %}
+    </div>
+
+    {% if top_achievers %}
+    <div class="col-md-10 mb-4 mt-3">
+      <div class="card mb-2 shadow-sm achievers">
+        {% for achiever in top_achievers %}
+        {% if achiever.achievements > 0%}
+        <div class="card-body my-1 hoverable {% if achiever.user_id == session['user_id'] %}current-user-highlight{% endif %}">
+          <div class="row justify-content-center align-items-center">
+            <div class="col-lg-1 col-md-2 col-sm-2 col-2 rank-number d-flex align-items-center justify-content-center shadow-sm mb-2 mb-lg-0">{{ loop.index}}
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6 col-6 d-flex align-items-center justify-content-start mb-2 mb-lg-0">
+              {% if achiever.profile_image %}
+              <img src="{{ url_for('static', filename=achiever.profile_image) }}" alt="Profile"
+                class="rounded-circle me-2 border border-2 border-secondary" width="40" height="40">
+              {% else %}
+              <i class="bi bi-person-circle text-secondary me-2" style="font-size: 40px;"></i>
+              {% endif %}
+              <div>
+                <div class="fw-semibold">{{ achiever.username }}</div>
+              </div>
+            </div>
+            <div class="col-lg-2 col-md-3 col-sm-4 col-4 d-flex align-items-center justify-content-center justify-content-lg-end mb-2 mb-lg-0">
+                <div class="text-center text-lg-end">{{achiever.achievements}} Achievements</div>
+            </div>
+            <div class="col-lg-4 col-md-3 col-sm-6 col-6 d-flex align-items-center justify-content-center justify-content-lg-end mb-2 mb-lg-0">
+                {% if achiever.completed_at %}
+                <small class="text-muted text-center text-lg-end">Completed: {{ achiever.completed_at.strftime("%d %b %Y %I:%M %p") }}</small>
+                {% endif %}
+            </div>
+            <div class="col-lg-2 col-md-12 col-sm-6 col-6 d-flex align-items-center justify-content-center justify-content-lg-end">
+              {{ yes_button('View', url_for('user.view_other_profile', selected_user_id=achiever['user_id'], page='LeaderBoard'), 'btn-sm') }}
+            </div>
+          </div>
+        </div>
+        {%endif%}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Recently Unlocked Achievements -->
+    <div class="col-md-10">
+      {% set recent_content %}
+        {% if recent_achievements and recent_achievements|length > 0 %}
+          {% for achievement in recent_achievements %}
+          <div class="card mb-2 shadow-sm">
+            <div class="card-body">
+              <span class="badge text-bg-light">{{ achievement.username }}</span> completed the
+              <span class="badge bg-success "> <i class="bi {{achievement.icon_path}}"></i> 
+                {{ achievement.achievement_title }}</span> achievement on
+              <span class="badge text-bg-light">{{ achievement.unlocked_at.strftime("%d %b %Y %I:%M %p") }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          {{ no_items_message('No recent achievements unlocked', 'bi-award', '', '', false) }}
+        {% endif %}
+      {% endset %}
+      
+      {{ content_card('Recently Unlocked Achievements', recent_content, '', true) }}
+    </div>
+  </div>
+</div>
+<script>
+  // Initialize tooltips
+  document.addEventListener('DOMContentLoaded', function () {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl, {
+        html: true,
+        delay: { show: 500, hide: 100 }
+      });
+    });
+  });
+</script>
+<style>
+  .leaderbord-card {
+    background-color: #5660f6;
+  }
+
+  .rank-number {
+    background-color: #ffffff;
+    border-top-right-radius: 50px;
+    border-bottom-right-radius: 50px;
+    border-left: 0;
+  }
+
+  .achievers .card-body {
+    background-color: #f8f9fa;
+  }
+
+  .card-body.hoverable {
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    border-radius: 10px;
+  }
+
+  .card-body.hoverable:hover {
+    background-color: #f5f8ff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .current-user-highlight {
+    background-color: #fff3cd !important;
+    border: 2px solid #ffc107;
+    position: relative;
+  }
+
+  .current-user-highlight:hover {
+    background-color: #ffeaa7 !important;
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.5);
+  }
+
+  .current-user-highlight::before {
+    content: "You";
+    position: absolute;
+    top: -10px;
+    right: 10px;
+    background-color: #ffc107;
+    color: #212529;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  #secondplace {
+    margin-top: 80px;
+  }
+
+  #secondplace .item {
+    height: 200px;
+    background-image: linear-gradient(180deg, #727cf8, #5660f6);
+    border-radius: 10px;
+  }
+
+  #firstplace {
+    margin-top: 50px;
+  }
+
+  #firstplace .item {
+    height: 200px;
+    background-image: linear-gradient(180deg, #727cf8, #5660f6);
+    border-radius: 10px;
+  }
+
+  #thirdplace {
+    margin-top: 100px;
+  }
+
+  #thirdplace .item {
+    height: 200px;
+    background-image: linear-gradient(180deg, #727cf8, #5660f6);
+    border-radius: 10px;
+  }
+
+  .item i {
+    font-size: 30px;
+    color: white;
+  }
+
+  /* Responsive adjustments for leaderboard rows */
+  @media (max-width: 991.98px) {
+    .achievers .card-body .row > div {
+      margin-bottom: 0.5rem;
+    }
+    
+    .rank-number {
+      min-height: 40px;
+      font-weight: bold;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .achievers .card-body .row > div {
+      margin-bottom: 0.75rem;
+    }
+    
+    .achievers .card-body .row > div:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .col-sm-6, .col-6 {
+      flex: 0 0 50%;
+      max-width: 50%;
+    }
+    
+    .col-sm-4, .col-4 {
+      flex: 0 0 33.333333%;
+      max-width: 33.333333%;
+    }
+    
+    .col-sm-2, .col-2 {
+      flex: 0 0 16.666667%;
+      max-width: 16.666667%;
+    }
+  }
+</style>
+
+{% endblock %}

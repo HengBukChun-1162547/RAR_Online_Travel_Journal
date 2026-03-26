@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from '_macros.html' import content_card %}
+
+{% block title %}Access Denied{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row min-vh-100 justify-content-center align-items-center">
+        <div class="col-md-6">
+            {% set card_content %}
+                <div class="text-center p-4">
+                    <div class="mb-4">
+                        <span class="display-1 text-danger">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </span>
+                    </div>
+                    <h1 class="mb-3">Access Denied</h1>
+                    {% if user_status %}
+                        <!-- Appeal Link for Banned Users -->
+                        <p class="mb-4">
+                            <i class="bi bi-info-circle text-primary"></i> 
+                            Ooops!!! Your account has been suspended, you don't have permission to access the App. <br>
+                            If you believe your account was suspended in error, you can <br>
+                            <a href="{{ url_for('helpdesk.create_ban_appeal') }}" class="text-primary text-decoration-underline">
+                                <i class="bi bi-envelope-exclamation"></i> submit a ban appeal
+                            </a>.
+                        </p>
+                    {% else %}
+                        <p class="mb-4 text-muted">
+                            Sorry, you don't have permission to access this page. Please ensure you're logged in with the correct credentials or contact your administrator for assistance.
+                        </p>
+                        <small class="text-muted">Error Code: 403</small>
+                    {% endif %}
+                </div>
+            {% endset %}
+            {{ content_card('', card_content, '', false) }}
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

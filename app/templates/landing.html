@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% import "_macros.html" as macros %}
+
+{% block title %}RAR Travel Journal - Home{% endblock %}
+
+{% block header %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <!-- Left: Welcome & badge -->
+  <div>
+    <h4 class="d-inline-flex align-items-center ms-4">
+      Welcome, {{ session['username'] }}
+      <!-- User role badge -->
+      {{ macros.role_badge(session['role'], 'ms-2') }}
+    </h4>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Recent Notifications Card - Top Row -->
+  <div class="col-12 mb-4">
+    {% set notification_content %}
+      <!-- Notifications list container -->
+      <div id="landing-notifications-container" style="min-height: 120px;">
+        <div class="d-flex justify-content-center align-items-center" style="height: 120px;">
+          <div class="spinner-border text-info" role="status">
+            <span class="visually-hidden">Loading notifications...</span>
+          </div>
+        </div>
+      </div>
+      <hr>
+      <div class="d-flex justify-content-between align-items-center">
+        {{ macros.yes_button('View All Notifications', url_for('user.inform'), 'btn') }}
+        <span class="text-muted" id="landing-notification-count">Loading...</span>
+      </div>
+    {% endset %}
+    {{ macros.content_card('Recent Notifications', notification_content) }}
+  </div>
+</div>
+
+<!-- Custom JavaScript for landing page notifications -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Reuse existing notification system with custom UI update function
+    loadLandingNotifications();
+});
+
+function loadLandingNotifications() {
+    // Reuse existing getAllUnreadNotifications logic without calling updateNotificationsUI
+    Promise.all([
+        fetch('/api/announcements/unread')
+            .then(response => response.json())
+            .catch(error => {
+                console.error('Error checking announcements:', error);
+                return { success: false, announcements: [] };
+            }),
+        fetch('/api/subscriptionnotifications/unread')
+            .then(response => response.json())
+            .catch(error => {
+                console.error('Error checking subscription notifications:', error);
+                return { success: false, notification_list: [] };
+            }),
+        fetch('/api/editnotifications/unread')
+            .then(response => response.json())
+            .catch(error => {
+                console.error('Error checking edit notifications:', error);
+                return { success: false, notifications: [] };
+            })
+    ])
+    .then(([announcementsData, subscriptionsData, editsData]) => {
+        const allNotifications = [];
+        
+        // Reuse existing data processing logic
+        // Add announcements
+        if (announcementsData.success && announcementsData.announcements) {
+            announcementsData.announcements.forEach(announcement => {
+                allNotifications.push({
+                    type: 'announcement',
+                    id: announcement.announcement_id,
+                    title: announcement.title,
+                    date: new Date(announcement.create_time),
+                    link: `/announcement/${announcement.announcement_id}`,
+                    icon: 'bi-megaphone-fill',
+                    iconBg: 'bg-primary'
+                });
+            });
+        }
+        
+        // Add subscription notifications
+        if (subscriptionsData.success && subscriptionsData.notification_list) {
+            subscriptionsData.notification_list.forEach(notification => {
+                allNotifications.push({
+                    type: 'subscription',
+                    id: notification.notification_id,
+                    title: notification.message,
+                    date: new Date(notification.created_at),
+                    link: '/inform?tab=subscriptions',
+                    icon: 'bi-star-fill',
+                    iconBg: 'bg-warning'
+                });
+            });
+        }
+        
+        // Add edit notifications - reuse formatEditLogSummary function
+        if (editsData.success && editsData.notifications) {
+            editsData.notifications.forEach(notification => {
+                let parsedSummary = notification.summary;
+                if (typeof notification.summary === 'string') {
+                    try {
+                        parsedSummary = JSON.parse(notification.summary);
+                    } catch (e) {
+                        parsedSummary = null;
+                    }
+                }
+                const editNotification = {
+                    type: 'edit',
+                    id: notification.notification_id,
+                    edit_reason: notification.edit_reason,
+                    summary: parsedSummary,
+                    date: new Date(notification.created_at),
+                    link: '/inform?tab=edit-logs',
+                    icon: 'bi-pencil-fill',
+                    iconBg: 'bg-info'
+                };
+
+                // Reuse formatEditLogSummary function if available
+                if (typeof formatEditLogSummary === 'function') {
+                    editNotification.title = formatEditLogSummary(editNotification);
+                } else {
+                    // Simplified version of title formatting with staff prefix
+                    let title = editNotification.edit_reason || 'Content was edited';
+                    editNotification.title = `Staff changed your journey: ${title}`;
+                }
+                
+                allNotifications.push(editNotification);
+            });
+        }
+        
+        // Sort by date (newest first) and take only first 5
+        allNotifications.sort((a, b) => b.date - a.date);
+        const recentNotifications = allNotifications.slice(0, 5);
+        
+        // Use dedicated landing page UI update function
+        updateLandingNotificationsUI(recentNotifications, allNotifications.length);
+    })
+    .catch(error => {
+        console.error('Error loading notifications:', error);
+        updateLandingNotificationsUI([], 0);
+    });
+}
+
+function updateLandingNotificationsUI(notifications, totalCount) {
+    const container = document.getElementById('landing-notifications-container');
+    const countElement = document.getElementById('landing-notification-count');
+    
+    if (!container || !countElement) return;
+    
+    // Update count
+    countElement.textContent = `Total: ${totalCount}`;
+    
+    // Clear container
+    container.innerHTML = '';
+    
+    if (notifications.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-3">
+                <i class="bi bi-bell-slash text-muted fs-4"></i>
+                <p class="text-muted mb-0 mt-2">No recent notifications</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Create notification list - make entire item clickable
+    notifications.forEach(notification => {
+        const notificationItem = document.createElement('a');
+        notificationItem.href = notification.link;
+        notificationItem.className = 'notification-item d-flex align-items-start py-2 border-bottom text-decoration-none text-dark';
+        notificationItem.style.cssText = 'transition: background-color 0.15s ease-in-out;';
+        
+        // Add hover effect
+        notificationItem.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = 'rgba(0,0,0,0.05)';
+        });
+        notificationItem.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+        
+        const dateString = notification.date.toLocaleDateString();
+        const timeString = notification.date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        notificationItem.innerHTML = `
+            <div class="flex-shrink-0 me-2">
+                <span class="${notification.iconBg} text-white rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                    <i class="bi ${notification.icon}" style="font-size: 0.75rem;"></i>
+                </span>
+            </div>
+            <div class="flex-grow-1" style="min-width: 0;">
+                <div class="fw-medium mb-1" style="
+                    line-height: 1.3; 
+                    word-wrap: break-word; 
+                    overflow-wrap: break-word; 
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                    font-size: 0.9rem;
+                ">${notification.title.length > 100 ? notification.title.substring(0, 100) + '...' : notification.title}</div>
+                <div class="small text-muted">${dateString} ${timeString}</div>
+            </div>
+        `;
+        
+        container.appendChild(notificationItem);
+    });
+}
+</script>
+{% endblock %}

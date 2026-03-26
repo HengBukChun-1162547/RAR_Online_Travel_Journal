@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% import "_macros.html" as macros %}
+{% block title %}Manage Locations{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <!-- Back Button -->
+            <div class="mb-3">
+                {{ macros.yes_button('<i class="bi bi-arrow-left"></i> Back', url_for('journey.list_journey', page_auth=session.get('page_auth', 'public')), 'btn') }}
+                </div>
+            
+            {% set card_content %}
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <form method="GET" class="d-flex">
+                                <input type="text" name="search" class="form-control me-2" placeholder="Search locations..." value="{{ search_term }}">
+                                {{ macros.yes_button('Search', 'javascript:void(0)', 'btn') }}
+                                <script>
+                                document.querySelector('a[href="javascript:void(0)"]').onclick = function() {
+                                    this.closest('form').submit();
+                                };
+                                </script>
+                                {% if search_term %}
+                                {{ macros.yes_button('Clear', url_for('event.manage_locations'), 'btn ms-2') }}
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('event.merge_locations_route') }}" id="mergeForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">Select Locations to Merge</div>
+                                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                        {% if locations %}
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th width="10%">Select</th>
+                                                        <th width="70%">Location Name</th>
+                                                        <th width="20%">Usage Count</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for location in locations %}
+                                                    <tr>
+                                                        <td>
+                                                            <input type="checkbox" class="form-check-input location-checkbox" 
+                                                                   name="source_location_ids" value="{{ location.location_id }}"
+                                                                   id="source_{{ location.location_id }}">
+                                                        </td>
+                                                        <td>{{ location.name }}</td>
+                                                        <td>{{ location.usage_count }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {% else %}
+                                        <p class="text-muted">No locations found.</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">Select Target Location</div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="target_type" 
+                                                       id="target_existing" value="existing" checked>
+                                                <label class="form-check-label" for="target_existing">
+                                                    Use existing location
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="target_type" 
+                                                       id="target_new" value="new">
+                                                <label class="form-check-label" for="target_new">
+                                                    Create new location
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div id="existing_location_section" class="mb-3">
+                                            <label for="target_location_id" class="form-label">Select target location:</label>
+                                            <select class="form-select" id="target_location_id" name="target_location_id">
+                                                <option value="">-- Select Location --</option>
+                                                {% for all_location in all_locations %}
+                                                <option value="{{ all_location.location_id }}" data-location-id="{{ all_location.location_id }}">
+                                                    {{ all_location.name }} (Used: {{ all_location.usage_count }})
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        
+                                        <div id="new_location_section" class="mb-3" style="display: none;">
+                                            <label for="new_location_name" class="form-label">New location name:</label>
+                                            <input type="text" class="form-control" id="new_location_name" name="new_location_name">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="shadow-sm p-3 mb-3 bg-success-subtle rounded text-center">
+                                    <i class="bi bi-info-circle"></i> Merging locations will update all relevant events to use the selected target location. All source location records will be permanently deleted.
+                                </div>
+                                
+                                <div class="d-grid">
+                                    <button type="submit" name="merge_locations" class="btn" 
+                                            id="merge_button" disabled
+                                            style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px;">
+                                        <i class="bi bi-diamond-half"></i> Merge Locations
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    {% endset %}
+                
+                {{ macros.content_card('Manage Locations', card_content) }}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const targetTypeRadios = document.querySelectorAll('input[name="target_type"]');
+    const existingSection = document.getElementById('existing_location_section');
+    const newSection = document.getElementById('new_location_section');
+    const targetSelect = document.getElementById('target_location_id');
+    const newLocationInput = document.getElementById('new_location_name');
+    const locationCheckboxes = document.querySelectorAll('.location-checkbox');
+    const mergeButton = document.getElementById('merge_button');
+    
+    // Toggle target location type
+    targetTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'existing') {
+                existingSection.style.display = 'block';
+                newSection.style.display = 'none';
+                validateForm();
+            } else {
+                existingSection.style.display = 'none';
+                newSection.style.display = 'block';
+                validateForm();
+            }
+        });
+    });
+    
+    // Listen for location selection changes
+    targetSelect.addEventListener('change', validateForm);
+    newLocationInput.addEventListener('input', validateForm);
+    
+    // Listen for checkbox changes
+    locationCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            // Disable checkbox for selected target location if target type is existing
+            if (document.getElementById('target_existing').checked) {
+                const selectedTargetId = targetSelect.value;
+                if (selectedTargetId && this.value === selectedTargetId) {
+                    this.checked = false;
+                }
+            }
+            validateForm();
+            
+            // Update target dropdown to disable already selected source locations
+            updateTargetDropdown();
+        });
+    });
+    
+    // Validate form before submission
+    document.getElementById('mergeForm').addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+            alert('Please select at least one source location and a valid target location');
+        } else {
+            if (confirm('Are you sure you want to merge these locations? This action cannot be undone.')) {
+                return true;
+            } else {
+                e.preventDefault();
+                return false;
+            }
+        }
+    });
+    
+    function validateForm() {
+        // Check if any source locations are selected
+        let hasSelectedSource = false;
+        locationCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                hasSelectedSource = true;
+            }
+        });
+        
+        // Check target location
+        let hasValidTarget = false;
+        const targetType = document.querySelector('input[name="target_type"]:checked').value;
+        
+        if (targetType === 'existing') {
+            hasValidTarget = targetSelect.value !== '';
+        } else {
+            hasValidTarget = newLocationInput.value.trim() !== '';
+        }
+        
+        // Enable or disable merge button
+        mergeButton.disabled = !(hasSelectedSource && hasValidTarget);
+        
+        return hasSelectedSource && hasValidTarget;
+    }
+    
+    function updateTargetDropdown() {
+        if (!document.getElementById('target_existing').checked) {
+            return;
+        }
+        
+        // Get all selected source location IDs
+        const selectedSourceIds = Array.from(locationCheckboxes)
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.value);
+        
+        // Update target dropdown options
+        Array.from(targetSelect.options).forEach(option => {
+            if (option.value === '') return; // Skip default option
+            
+            const locationId = option.getAttribute('data-location-id');
+            if (selectedSourceIds.includes(locationId)) {
+                option.disabled = true;
+            } else {
+                option.disabled = false;
+            }
+        });
+        
+        // Clear selection if current target is in sources
+        if (selectedSourceIds.includes(targetSelect.value)) {
+            targetSelect.value = '';
+            validateForm();
+        }
+    }
+});
+</script>
+{% endblock %}

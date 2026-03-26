@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% import "_macros.html" as macros %}
+{% block title %}Journey List{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- My Journey -->
+    {% if page_auth == 'private' %}
+        <div class="d-flex justify-content-between w-100">
+            <!-- Left side: Restricted status if applicable -->
+            <div>
+                {% if user.status == 'restricted' %}
+                <div class="mb-0">
+                    <span class="badge bg-danger" title="Your sharing is restricted">
+                        <i class="bi bi-exclamation-triangle"></i> Restricted
+                    </span>
+                    {{ macros.yes_button('<i class="bi bi-envelope-exclamation"></i> Appeal', url_for('helpdesk.create_restricted_appeal'), 'btn-sm ms-2') }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Right side: Journey button -->
+            <div class="d-flex">
+                {{ macros.yes_button('<i class="bi bi-plus-circle"></i> Journey', url_for('journey.add_journey'), 'btn') }}
+            </div>
+        </div>
+    <!-- Public Journey -->
+    {% else %}
+        <!-- Button for admin/editor to show hidden or all-->
+        <div class="d-flex justify-content-between w-100">
+            <!-- Left side: Empty for balance -->
+            <div></div>
+            
+            <!-- Right side: Hide buttons and Location Management -->
+            <div class="d-flex gap-2">
+            {% if has_permission('view_hidden_journey') %}
+            <form action="{{ url_for('journey.list_journey') }}" method="GET">
+                {% if show_hidden == '1' %}
+                <input type="hidden" name="show_hidden" value="0">
+                <input type="hidden" name="page_auth" value="{{ page_auth }}">
+                    {{ macros.yes_button('<i class="bi bi-eye"></i> Show All', 'javascript:void(0)', 'btn text-nowrap') }}
+                    <script>
+                    document.querySelector('a[href="javascript:void(0)"]').onclick = function() {
+                        this.closest('form').submit();
+                    };
+                    </script>
+                {% else %}
+                <input type="hidden" name="show_hidden" value="1">
+                <input type="hidden" name="page_auth" value="{{ page_auth }}">
+                    {{ macros.yes_button('<i class="bi bi-eye-slash"></i> Hidden Only', 'javascript:void(0)', 'btn text-nowrap') }}
+                    <script>
+                    document.querySelector('a[href="javascript:void(0)"]').onclick = function() {
+                        this.closest('form').submit();
+                    };
+                    </script>
+                {% endif %}
+            </form>
+            {% endif %}
+                
+            {% if has_permission('manage_locations') %}
+                {{ macros.yes_button('<i class="bi bi-geo-alt"></i> Manage Locations', url_for('event.manage_locations', page_auth=page_auth), 'btn text-nowrap') }}
+            {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% if page_auth == 'public' %}
+<!--Search for all public journeys-->
+{% set search_content %}
+        <form class="row g-3 needs-validation" id="journeysearch" name="journeysearch" novalidate method="POST" action="{{ url_for('journey.list_journey') }}">
+            <input type="hidden" name="show_hidden" value="{{show_hidden}}">
+            <input type="hidden" name="page_auth" value="{{page_auth}}">
+
+            <!-- Search by dropdown -->
+            <div class="col-12 col-md-4">
+                <select class="form-select" id="searchJourneyBy" name="searchjourneyby" required>
+                    <option value="0" {% if searchjourneyby == '0' %}selected{% endif %}>Show All</option>
+                    <option value="1" {% if searchjourneyby == '1' %}selected{% endif %}>Title</option>
+                    <option value="2" {% if searchjourneyby == '2' %}selected{% endif %}>Description</option>
+                    <option value="3" {% if searchjourneyby == '3' %}selected{% endif %}>Both Title and Description</option>
+                    <option value="4" {% if searchjourneyby == '4' %}selected{% endif %}>Location</option>
+                    <option value="5" {% if searchjourneyby == '5' %}selected{% endif %}>User</option>
+                </select>
+            </div>
+
+    <!-- Search input -->
+    <div class="col-12 col-md-5">
+        <input type="text" class="form-control" id="searchJourneyContent" name="searchjourneycontext" value="{{ searchjourneycontext if searchjourneycontext else '' }}" placeholder="Search by Title or Description or Location" required>
+    </div>
+
+            <!-- Buttons -->
+            <div class="col-12 col-md-3">
+                <div class="d-flex gap-2 justify-content-center justify-content-md-end">
+                    {{ macros.form_submit_button('<i class="bi bi-search me-1"></i>Search', 'btn-md') }}
+                    {{ macros.yes_button('<i class="bi bi-arrow-clockwise me-1"></i>Reset', 'javascript:void(0)', 'btn-md', 'Reset search') }}
+                    <script>
+                    document.querySelector('a[title="Reset search"]').onclick = function(e) {
+                        e.preventDefault();
+                        document.getElementById('searchJourneyContent').value = '';
+                        document.getElementById('searchJourneyBy').value = '0';
+                        document.getElementById('journeysearch').submit();
+                    };
+                    </script>
+                </div>
+            </div>
+        </form>
+{% endset %}
+{{ macros.search_card('Search', search_content) }}
+{% endif %}
+
+<!-- Journey Grid -->
+{% if journeys %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for journey in journeys %}
+    <div class="col">
+        {{ macros.public_journey_card(journey, page_auth, has_permission, user, show_hidden) }}
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{{ macros.pagination_nav('Journey pagination', pagination, 'journey.list_journey', {'page_auth': page_auth, 'show_hidden': show_hidden, 'searchjourneyby': searchjourneyby, 'searchjourneycontext': searchjourneycontext}) }}
+
+{% else %}
+<div class="text-center py-5">
+    {% if page_auth == 'private' %}
+    <div class="mb-4">
+        <i class="bi bi-journal-plus display-1 text-muted"></i>
+    </div>
+    <h5 class="text-muted mb-4">You haven't created any journeys yet</h5>
+    {{ macros.yes_button('<i class="bi bi-plus-circle"></i> Create Your First Journey', url_for('journey.add_journey'), 'btn') }}
+    {% else %}
+    <div class="mb-4">
+        <i class="bi bi-search display-1 text-muted"></i>
+    </div>
+    <h5 class="text-muted">No journeys found</h5>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+// Prevent hide button click from triggering card click
+document.querySelectorAll('.hide-button-container').forEach(function(container) {
+    container.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+});
+</script>
+{% endblock %}

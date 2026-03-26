@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import content_card, yes_button, no_items_message %}
+
+{% block title %}Manage Subscription{% endblock %}
+
+{% block header %}
+
+<div class="container-md mt-4">
+  {% if all_subscription_plans %}
+    {% set card_content %}
+      {% if not has_active_subscription%}
+      <h5> Your premium plan has expired</h5>
+      {% endif %}
+      <div class="row">
+        <div class="col-12 col-md-6 mb-3">
+          <h4>
+            <small class="text-muted">Last Purchased Plan</small>
+          </h4>
+          <h6 class="d-flex">
+            <div class="badge bg-secondary fs-6">{{ (all_subscription_plans | first).plan_name }}</div>
+          </h6>
+          {% if first_subscribed_date %}
+          <span class="text-muted">Premium Member Since :
+              {{ first_subscribed_date.start_date.strftime('%B %Y') }}
+            {% endif %}
+          </span>
+        </div>
+        <div class="col-12 col-md-6 mb-3">
+          {{ yes_button('Subscription History', url_for('premium.subscription_history')) }}
+          {{ yes_button('Top Up', url_for('premium.subscribe_to_premium_features')) }}
+        </div>
+      </div>
+      <div class="mt-4">
+        <div class="d-flex">
+          <div> Premium Subscription Expire On : </div>
+          <div id="end-date"> {{ (all_subscription_plans | first).expiry_date.strftime('%d %b %Y') }} </div>
+        </div>
+        <div class="d-flex">
+          {% if (all_subscription_plans | first).payment_amount %}
+          <div>Last Paid Amount : </div>
+          <div id="end-date">  ${{(all_subscription_plans | first).payment_amount | round(0) | string}}  </div>
+          {% else %}
+          <span>{{(all_subscription_plans | first).subscription_type}}</span>
+          {%endif%}
+        </div>
+      </div>
+      &nbsp;
+      <!-- <div class="mb-2">
+        <strong> <span id="days-left"></span> out of <span id="total-days"></span> days remaining!</strong>
+      </div>
+      <div class="progress" style="height: 20px;">
+        <div 
+          class="progress-bar progress-bar-striped progress-bar-animated"
+          role="progressbar" 
+          aria-valuemin="0" 
+          aria-valuemax="100" 
+          aria-valuenow="0" 
+          id="progress-bar">
+        </div>
+      </div> -->
+    {% endset %}
+    {{ content_card('Manage Subscription', card_content, '', true) }}
+  {% else %}
+    {{ no_items_message('No active plans yet. Discover a subscription that suits you best!', 'bi-credit-card', 'Top Up', url_for('premium.subscribe_to_premium_features'), true) }}
+  {% endif %}
+  
+  <!-- Back Button -->
+  <div class="text-center mt-4">
+    {{ yes_button('<i class="bi bi-arrow-left me-2"></i>Back to Premium Features', url_for('premium.premium_features')) }}
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% from '_macros.html' import content_card, title_input, description_textarea, form_submit_button, no_button %}
+{% block title %}
+{% if banned_user_info %}Submit Ban Appeal
+{% elif restricted_user_info %}Submit Restricted Appeal
+{% elif journey_info %}Submit Journey Appeal
+{% else %}Create Support Request
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            {% set card_header %}
+                {% if banned_user_info %}
+                    <i class="bi bi-envelope-exclamation"></i> Submit Ban Appeal
+                {% elif restricted_user_info %}
+                    <i class="bi bi-envelope-exclamation"></i> Submit Restricted Appeal
+                {% elif journey_info %}
+                    <i class="bi bi-envelope-exclamation"></i> Submit Journey Appeal
+                {% else %}
+                    Create Support Request
+                {% endif %}
+            {% endset %}
+            {% set card_content %}
+                    {% if banned_user_info %}
+                    <!-- Banned User Info Display - Permanent Display -->
+                    <div class="border rounded p-3 mb-4 bg-light">
+                        <h6 class="mb-3"><i class="bi bi-person-circle"></i> User Information</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Username:</strong> {{ banned_user_info.username }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Email:</strong> {{ banned_user_info.email }}
+                            </div>
+                        </div>
+                    </div>
+                    {% elif restricted_user_info %}
+                    <!-- Restricted User Info Display - Permanent Display -->
+                    <div class="border rounded p-3 mb-4 bg-light">
+                        <h6 class="mb-3"><i class="bi bi-person-circle"></i> User Information</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Username:</strong> {{ restricted_user_info.username }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Status:</strong> 
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-exclamation-triangle"></i> Restricted
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif journey_info %}
+                    <!-- Journey Info Display - Permanent Display -->
+                    <div class="border rounded p-3 mb-4 bg-light">
+                        <h6 class="mb-3"><i class="bi bi-journal-text"></i> Journey Information</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Journey Title:</strong> {{ journey_info.title }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Status:</strong> 
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-eye-slash"></i> Hidden
+                                </span>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <strong>Created:</strong> {{ journey_info.create_time.strftime('%d %b %Y') }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Journey ID:</strong> {{ journey_info.journey_id }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="POST" enctype="multipart/form-data" novalidate>
+                        {% if banned_user_info %}
+                        <!-- Hidden fields for banned user -->
+                        <input type="hidden" name="user_id" value="{{ banned_user_info.user_id }}">
+                        {% elif restricted_user_info %}
+                        <!-- Hidden fields for restricted user -->
+                        <input type="hidden" name="user_id" value="{{ restricted_user_info.user_id }}">
+                        {% elif journey_info %}
+                        <!-- Hidden fields for journey appeal -->
+                        <input type="hidden" name="journey_id" value="{{ journey_info.journey_id }}">
+                        {% endif %}
+                        
+                        <!-- Issue Type -->
+                        <div class="mb-3">
+                            <label for="issue_type" class="form-label">Issue Type <span class="text-danger">*</span></label>
+                            {% if banned_user_info or restricted_user_info or journey_info %}
+                            <!-- Disabled for appeals -->
+                            <input type="text" class="form-control bg-light" value="Appeal" readonly disabled>
+                            <input type="hidden" name="issue_type" value="Appeal">
+                            <div class="form-text text-muted">
+                                <i class="bi bi-lock"></i> This field is fixed for appeals
+                            </div>
+                            {% else %}
+                            <!-- Normal dropdown for regular users -->
+                            <select class="form-select {% if errors and errors.get('issue_type') %}is-invalid{% endif %}" 
+                                    id="issue_type" name="issue_type" required>
+                                <option value="" selected disabled>Select an issue type</option>
+                                <option value="Bug" {% if request.form.get('issue_type') == 'Bug' %}selected{% endif %}>Bug Report</option>
+                                <option value="Help_Request" {% if request.form.get('issue_type') == 'Help_Request' %}selected{% endif %}>Help Request</option>
+                                <option value="Others" {% if request.form.get('issue_type') == 'Others' %}selected{% endif %}>Others</option>
+                            </select>
+                            {% endif %}
+                            {% if errors and errors.get('issue_type') %}
+                            <div class="invalid-feedback">{{ errors.get('issue_type') }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Summary -->
+                        <div class="mb-3">
+                            <label for="summary" class="form-label">
+                                {% if banned_user_info or restricted_user_info or journey_info %}Appeal Summary
+                                {% else %}Summary
+                                {% endif %} 
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control {% if errors and errors.get('summary') %}is-invalid{% endif %}" 
+                                   id="summary" name="summary" 
+                                   value="{{ request.form.get('summary', '') }}" 
+                                   required maxlength="50"
+                                   {% if banned_user_info %}placeholder="Brief description of your ban appeal"
+                                   {% elif restricted_user_info %}placeholder="Brief description of your restricted appeal"
+                                   {% elif journey_info %}placeholder="Brief description of your journey appeal"
+                                   {% else %}placeholder="Brief description"
+                                   {% endif %}>
+                            {% if errors and errors.get('summary') %}
+                            <div class="invalid-feedback">{{ errors.get('summary') }}</div>
+                            {% endif %}
+                            <div class="text-end"><small id="summaryCounter" class="text-muted">{{ request.form.get('summary', '')|length }}/50</small></div>
+                        </div>
+                        
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="bi bi-journal-text me-2"></i>
+                                {% if banned_user_info or restricted_user_info or journey_info %}Detailed Explanation
+                                {% else %}Description
+                                {% endif %} 
+                                <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control {% if errors and errors.get('description') %}is-invalid{% endif %}" 
+                                     id="description" name="description" 
+                                     rows="{% if banned_user_info or restricted_user_info or journey_info %}6{% else %}5{% endif %}" 
+                                     required maxlength="300" minlength="5"
+                                     style="resize: vertical; min-height: 120px;"
+                                     {% if banned_user_info %}placeholder="Please provide a detailed explanation of why you believe the ban was inappropriate or unfair. Include any relevant circumstances or evidence."
+                                     {% elif restricted_user_info %}placeholder="Please provide a detailed explanation of why you believe the restriction was inappropriate or unfair. Include any relevant circumstances or evidence."
+                                     {% elif journey_info %}placeholder="Please provide a detailed explanation of why you believe your journey was inappropriately hidden. Include any relevant circumstances or evidence."
+                                     {% else %}placeholder="Detailed description"
+                                     {% endif %}>{{ request.form.get('description', '') }}</textarea>
+                            <div class="text-end"><small id="descriptionCounter" class="text-muted">{{ request.form.get('description', '')|length }}/300</small></div>
+                            <div class="invalid-feedback">
+                                {% if errors and errors.get('description') %}
+                                    {{ errors.get('description') }}
+                                {% else %}
+                                    Please enter a description between 5 and 300 characters
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Screenshot upload -->
+                        <div class="mb-3">
+                            <label for="screenshot" class="form-label">
+                                {% if banned_user_info or restricted_user_info or journey_info %}Supporting Evidence (Optional)
+                                {% else %}Screenshot (Optional)
+                                {% endif %}
+                            </label>
+                            <input type="file" class="form-control {% if errors and errors.get('screenshot') %}is-invalid{% endif %}" 
+                                   id="screenshot" name="screenshot" 
+                                   accept="{% for ext in get_config('ALLOWED_EXTENSIONS') %}.{{ ext.lower() }}{% if not loop.last %}, {% endif %}{% endfor %}">
+                            {% if errors and errors.get('screenshot') %}
+                            <div class="invalid-feedback">{{ errors.get('screenshot') }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                {% if banned_user_info %}
+                                    You can upload a screenshot or other image evidence to support your appeal.
+                                {% elif restricted_user_info %}
+                                    You can upload a screenshot or other image evidence to support your restricted appeal.
+                                {% elif journey_info %}
+                                    You can upload a screenshot or other image evidence to support your journey appeal.
+                                {% else %}
+                                    You can upload a screenshot to help us better understand your issue.
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">
+                                    Support Format: 
+                                    {% set formats = [] %}
+                                    {% for ext in get_config('ALLOWED_EXTENSIONS') %}
+                                        {% set _ = formats.append(ext.upper()) %}
+                                    {% endfor %}
+                                    {{ formats|join(", ") }}.
+                                    Max Size: {{ get_config('MAX_FILE_SIZE') / (1024 * 1024) }}MB
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit buttons -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            {% if banned_user_info %}
+                            {{ no_button('Cancel', url_for('auth.login'), 'me-md-2') }}
+                            {% elif restricted_user_info %}
+                            {{ no_button('Cancel', url_for('journey.list_journey', page_auth='private'), 'me-md-2') }}
+                            {% elif journey_info %}
+                            {{ no_button('Cancel', url_for('journey.journey_detail', journey_id=journey_info.journey_id), 'me-md-2') }}
+                            {% else %}
+                            {{ no_button('Cancel', url_for('helpdesk.index'), 'me-md-2') }}
+                            {% endif %}
+                            {{ form_submit_button(
+                                (banned_user_info or restricted_user_info or journey_info) and '<i class="bi bi-send"></i> Submit Appeal' or 'Submit Request'
+                            ) }}
+                        </div>
+                    </form>
+            {% endset %}
+            {{ content_card(card_header, card_content, '', true) }}
+        </div>
+    </div>
+</div>
+
+<!-- Simple Success Modal for Ban Appeal -->
+{% if show_success_modal %}
+<div class="modal fade" id="appealSuccessModal" tabindex="-1" aria-labelledby="appealSuccessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title" id="appealSuccessModalLabel">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    {% if banned_user_info %}Ban Appeal Submitted
+                    {% elif restricted_user_info %}Restricted Appeal Submitted
+                    {% elif journey_info %}Journey Appeal Submitted
+                    {% else %}Appeal Submitted
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-envelope-check display-1 text-primary"></i>
+                </div>
+                <p class="mb-3">
+                    {% if banned_user_info %}Your ban appeal has been successfully submitted!
+                    {% elif restricted_user_info %}Your restricted appeal has been successfully submitted!
+                    {% elif journey_info %}Your journey appeal has been successfully submitted!
+                    {% else %}Your appeal has been successfully submitted!
+                    {% endif %}
+                </p>
+                <p class="text-muted">Reference Number: <strong>{{ request_id }}</strong></p>
+                {% if banned_user_info %}
+                <p class="text-muted">You will receive email updates regarding your appeal status.</p>
+                {% endif %}
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-primary" onclick="window.location.href='{% if restricted_user_info %}{{ url_for('journey.list_journey', page_auth='private') }}{% elif journey_info %}{{ url_for('journey.journey_detail', journey_id=journey_info.journey_id) }}{% else %}{{ url_for('auth.home') }}{% endif %}'">
+                    <i class="bi bi-check"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- JavaScript for character counting and modal -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Summary character counter
+    const summaryInput = document.getElementById('summary');
+    const summaryCounter = document.getElementById('summaryCounter');
+    
+    function updateSummaryCount() {
+        const count = summaryInput.value.length;
+        summaryCounter.textContent = count + '/50';
+        summaryCounter.className = count > 40 ? 'text-warning' : count > 45 ? 'text-danger' : 'text-muted';
+    }
+    
+    summaryInput.addEventListener('input', updateSummaryCount);
+    updateSummaryCount(); // Initial count
+    
+    // Description character counter
+    const descriptionInput = document.getElementById('description');
+    const descriptionCounter = document.getElementById('descriptionCounter');
+    
+    function updateDescriptionCount() {
+        const count = descriptionInput.value.length;
+        descriptionCounter.textContent = count + '/300';
+        descriptionCounter.className = count > 250 ? 'text-warning' : count > 280 ? 'text-danger' : 'text-muted';
+    }
+    
+    descriptionInput.addEventListener('input', updateDescriptionCount);
+    updateDescriptionCount(); // Initial count
+    
+    // Screenshot upload validation
+    const screenshotInput = document.getElementById('screenshot');
+    if (screenshotInput) {
+        screenshotInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file type
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Invalid file format. Please upload an image file (PNG, JPG, JPEG, GIF).');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Validate file size (5MB)
+                const maxSize = {{ get_config('MAX_FILE_SIZE') }}; // bytes
+                if (file.size > maxSize) {
+                    const maxSizeMB = Math.round(maxSize / (1024 * 1024));
+                    alert(`File size exceeds the ${maxSizeMB}MB limit. Please choose a smaller image file.`);
+                    e.target.value = '';
+                    return;
+                }
+            }
+        });
+    }
+    
+    // Show success modal if needed
+    {% if show_success_modal %}
+    var appealSuccessModal = new bootstrap.Modal(document.getElementById('appealSuccessModal'));
+    appealSuccessModal.show();
+    {% endif %}
+});
+</script>
+{% endblock %}

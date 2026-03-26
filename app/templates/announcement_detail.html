@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from '_macros.html' import content_card, yes_button, no_button %}
+{% block title %}Announcement Details{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    {% set card_content %}
+        <div class="row mb-3">
+            <div class="col-12">
+                <h5 class="text-dark"><strong>Title:</strong> {{ announcement.title }}</h5>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-lg-6 col-12 mb-2 mb-lg-0">
+                <strong>Created by:</strong> {{ announcement.creator_name }}
+            </div>
+            <div class="col-lg-6 col-12">
+                <strong>Created on:</strong> {{ announcement.create_time.strftime('%d %b %Y %I:%M %p') }}
+            </div>
+        </div>
+        {% if announcement.update_time and announcement.update_time != announcement.create_time %}
+        <div class="row mb-3">
+            <div class="col-lg-6 col-12 mb-2 mb-lg-0">
+                <strong>Updated by:</strong> {{ announcement.updater_name }}
+            </div>
+            <div class="col-lg-6 col-12">
+                <strong>Last updated:</strong> {{ announcement.update_time.strftime('%d %b %Y %I:%M %p') }}
+            </div>
+        </div>
+        {% endif %}
+        <hr>
+        <div class="announcement-content mt-4">
+            <!-- Display formatted content with proper line breaks -->
+            {% for paragraph in announcement.description.split('\n') %}
+                <p>{{ paragraph }}</p>
+            {% endfor %}
+        </div>
+    {% endset %}
+    
+    {% set card_footer %}
+        <div class="card-footer">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+                <div class="order-2 order-sm-1">
+                    {{ yes_button('<i class="bi bi-arrow-left"></i> Back to List', url_for('user.inform')) }}
+                </div>
+                <div class="order-1 order-sm-2">
+                    {% if session.role == 'admin' or session.user_id == announcement.user_id %}
+                    <div class="d-flex flex-wrap gap-2 justify-content-end">
+                        {{ yes_button('<i class="bi bi-pencil"></i> Edit', url_for('user.edit_announcement', announcement_id=announcement.announcement_id), 'btn-sm') }}
+                        <form action="{{ url_for('user.delete_announcement', announcement_id=announcement.announcement_id) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="btn btn-sm" 
+                                    style="background-color: rgba(242, 41, 34, 0.698); border-color: rgba(242, 41, 34, 0.698); color: white; border-radius: 50px; padding: 6px 16px;"
+                                    onclick="return confirm('Are you sure to Delete this announcement?');">
+                                <i class="bi bi-trash3"></i> Delete
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endset %}
+    
+    {{ content_card('Announcement Details', card_content, card_footer, true) }}
+</div>
+{% endblock %}

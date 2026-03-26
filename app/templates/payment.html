@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% import "_macros.html" as macros %}
+{% block title %}Payment{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    {% set card_content %}
+        <form id="paymentForm" action="{{ url_for('premium.process_payment') }}" method="POST" class="needs-validation" novalidate>
+          <!-- Credit Card Form -->
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h6 class="mb-0 text-primary">Card Details</h6>
+            </div>
+            <div class="card-body" id="creditCardForm">
+              <div class="mb-3">
+                <label class="form-label">Card Number</label>
+                <input type="text" class="form-control" id="cardNumber" name="cardNumber" maxlength="19" placeholder="0000-0000-0000-0000" required>
+                <div class="invalid-feedback">
+                  Please enter a valid 16-digit card number
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Expiry Date</label>
+                  <input type="text" class="form-control" name="cardExpiryDate" placeholder="MM/YYYY" required>
+                  <div class="invalid-feedback">
+                    Please enter a valid expiry date in the format MM/YYYY
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">CVV</label>
+                  <input type="text" class="form-control" name="cardCVV" maxlength="3" pattern="\d{3}" placeholder="123" required>
+                  <div class="invalid-feedback">
+                    Please enter a valid 3-digit number
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Card Holder Name</label>
+                <input type="text" class="form-control" name="cardHolder" required>
+                <div class="invalid-feedback">
+                  Please enter a holder name.
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Card Type</label>
+                <select class="form-select" name="cardType" required>
+                  <option value="" selected disabled>Select card type</option>
+                  <option value="Visa">Visa</option>
+                  <option value="Mastercard">Mastercard</option>
+                  <option value="American Express">American Express</option>
+                </select>
+                <div class="invalid-feedback">
+                  Please choose a card type.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Country Selection -->
+          <div class="mb-3">
+            
+          </div>
+
+          <!-- Address Section -->
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h6 class="mb-0 text-primary">Billing Address</h6>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label">Country</label>
+                <select class="form-select" name="country" id="country" required>
+                  <option value="" selected disabled>Select your country</option>
+                  <option value="NZ">New Zealand</option>
+                  <option value="OTHERS">Others</option>
+                </select>
+                <div class="invalid-feedback">
+                  Please select your country.
+                </div>
+                <label class="form-label">Address Line 1</label>
+                <input type="text" class="form-control" name="addressLine1" id="addressLine1" required>
+                <div class="invalid-feedback">
+                  Please enter your street address.
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Address Line 2 (Optional)</label>
+                <input type="text" class="form-control" name="addressLine2" id="addressLine2">
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">City</label>
+                  <input type="text" class="form-control" name="city" id="city" required>
+                  <div class="invalid-feedback">
+                    Please enter your city.
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">State</label>
+                  <input type="text" class="form-control" name="state" id="state" required>
+                  <div class="invalid-feedback">
+                    Please enter your state.
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Postal code</label>
+                <input type="text" class="form-control" name="postalCode" id="postalCode" required>
+                <div class="invalid-feedback">
+                  Please enter your postal code.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Order Summary -->
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h6 class="mb-0 text-primary">Order Summary</h6>
+            </div>
+            <div class="card-body">
+              <div class="d-flex justify-content-between mb-2">
+                <span>Plan:</span>
+                <span class="fw-bold text-danger">{{ plan.name }}</span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span>Duration:</span>
+                <span>{{ plan.duration_months }} month{% if plan.duration_months > 1 %}s{% endif %}</span>
+              </div>
+              <div id="priceDetails">
+                <div class="d-flex justify-content-between mb-2">
+                  <span>Base Price:</span>
+                  <span>${{ "%.2f"|format(plan.price_excl_gst) }}</span>
+                </div>
+                <div id="gstRow" style="display:none;" hidden class="d-none justify-content-between mb-2">
+                  <span>GST ({{ plan.gst_percentage }}%):</span>
+                  <span>${{ "%.2f"|format(plan.price_excl_gst * plan.gst_percentage / 100) }}</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                  <span class="fw-bold">Total Amount:</span>
+                  <span id="totalAmount" class="fw-bold">${{ "%.2f"|format(plan.price_excl_gst) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Terms and Conditions -->
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h6 class="mb-0 text-primary">Terms and Conditions</h6>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="termsAgreement" name="termsAgreement" required>
+                  <label class="form-check-label" for="termsAgreement">
+                    I have read and agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> and <a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy Policy</a>.
+                  </label>
+                  <div class="invalid-feedback">
+                    You must agree to the terms and conditions to proceed.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hidden fields -->
+          <input type="hidden" name="plan_id" value="{{ plan.subscription_plan_id }}">
+          <input type="hidden" name="subscription_type" value="Purchased">
+          <input type="hidden" name="payment_amount" id="payment_amount" value="{{ plan.price_excl_gst }}">
+          <!-- JS use for calculate -->
+          <input type="hidden" id="plan_price" value="{{ plan.price_excl_gst }}">
+          <input type="hidden" id="plan_gst_percentage" value="{{ plan.gst_percentage }}">
+          <!-- Buttons -->
+          <div class="d-flex gap-2 justify-content-center mt-3">
+            {{ macros.no_button('Cancel', url_for('premium.subscribe_to_premium_features'), 'btn-md') }}
+            {{ macros.form_submit_button('Confirm Payment', 'btn-md', onclick="return confirm('Confirm your purchase of ' + document.getElementById('totalAmount').textContent + '?')") }}
+          </div>
+        </form>
+    {% endset %}
+    {{ macros.content_card('Payment', card_content, with_shadow=true) }}
+  </div>
+</div>
+
+<!-- Terms and Privacy Modals -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="termsModalLabel">Terms and Conditions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h6>1. Subscription Terms</h6>
+        <p>By subscribing to our service, you agree to pay the subscription fee for the plan you have selected. The subscription will automatically renew at the end of your subscription period unless cancelled at least 24 hours before the end of the current period.</p>
+        
+        <h6>2. Payment Terms</h6>
+        <p>Payment will be charged to your credit card through our payment processor. If we are unable to charge your payment method, we reserve the right to terminate your access to the service.</p>
+        
+        <h6>3. Refund Policy</h6>
+        <p>Refunds are available within 14 days of initial subscription purchase. To request a refund, please contact our customer support team. No refunds will be provided for partial subscription periods.</p>
+        
+        <h6>4. Service Changes</h6>
+        <p>We reserve the right to modify, suspend, or discontinue any part of the service at any time. We will provide notice of significant changes when possible.</p>
+        
+        <h6>5. Account Responsibility</h6>
+        <p>You are responsible for maintaining the confidentiality of your account information and for all activities that occur under your account.</p>
+        
+        <h6>6. Governing Law</h6>
+        <p>These terms shall be governed by and construed in accordance with the laws of New Zealand.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="privacyModal" tabindex="-1" aria-labelledby="privacyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="privacyModalLabel">Privacy Policy</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h6>1. Information We Collect</h6>
+        <p>We collect personal information that you provide to us, including your name, email address, billing information, and payment details. We also collect information about your use of our services.</p>
+        
+        <h6>2. How We Use Your Information</h6>
+        <p>We use your information to provide and improve our services, process payments, communicate with you, and comply with legal obligations.</p>
+        
+        <h6>3. Information Sharing</h6>
+        <p>We do not sell your personal information. We may share your information with service providers who help us operate our business, and as required by law.</p>
+        
+        <h6>4. Data Security</h6>
+        <p>We implement appropriate security measures to protect your personal information. However, no method of transmission over the Internet is 100% secure.</p>
+        
+        <h6>5. Your Rights</h6>
+        <p>You have the right to access, correct, or delete your personal information. To exercise these rights, please contact us.</p>
+        
+        <h6>6. Cookies</h6>
+        <p>We use cookies to improve your experience on our website. You can manage your cookie preferences through your browser settings.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

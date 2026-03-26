@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% import "_macros.html" as macros %}
+
+{% block title %}Premium Subscription - RAR Travel Journal{% endblock %}
+
+{% block header %}
+<div class="p-3 pb-md-4 text-center mt-4">
+  <h1 class="fw-bold text-body-emphasis">Premium Subscription</h1>
+  <p class="fs-6 text-body-secondary">Choose the subscription plan that works best for you</p>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-lg-10 offset-lg-1">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <!-- Subscription Plans -->
+        <div class="row mb-4 justify-content-center">
+          {% for plan in subscription_plans %}
+          <div class="col-md-{% if subscription_plans|length == 1 %}6{% elif subscription_plans|length == 2 %}6{% else %}4{% endif %} mb-4">
+            <div class="card h-100 
+              {% if plan.duration_months == 1 %}border-primary
+              {% elif plan.duration_months == 3 %}border-info
+              {% elif plan.duration_months == 12 %}border-warning
+              {% else %}border-primary{% endif %}">
+              <!-- Card Header -->
+              <div class="card-header 
+                {% if plan.duration_months == 1 %}bg-primary text-white
+                {% elif plan.duration_months == 3 %}bg-info text-white
+                {% elif plan.duration_months == 12 %}bg-warning text-dark
+                {% else %}bg-primary text-white{% endif %} 
+                text-center py-3 position-relative">
+                
+                {% if plan.duration_months == 12 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                  BEST
+                  <span class="visually-hidden">best value</span>
+                </span>
+                {% endif %}
+                <h5 class="mb-0">{{ plan.name }}</h5>
+              </div>
+              
+              <!-- Card Body with Flexbox Structure -->
+              <div class="card-body text-center d-flex flex-column">
+                <!-- Top Content Section (flex-grow to fill space) -->
+                <div class="flex-grow-1">
+                  <h2 class="card-title">${% if plan.subscription_type == 'Trial' %}0{% else %}{{ "%.2f"|format(plan.price_excl_gst * (1 + plan.gst_percentage / 100)) }}{% endif %}</h2>
+                  <p class="text-muted">
+                    {% if plan.duration_months == 1 and plan.subscription_type == 'Purchased' %}
+                      per month
+                    {% elif plan.duration_months == 1 and plan.subscription_type == 'Trial' %}
+                      for {{ plan.duration_months }} month
+                    {% elif plan.duration_months == 3 and plan.subscription_type == 'Purchased' %}
+                      for 3 months <span class="text-danger fw-bold">${{ "%.2f"|format((plan.price_excl_gst * (1 + plan.gst_percentage / 100)) / 3) }}/mo</span>
+                    {% elif plan.duration_months == 12 and plan.subscription_type == 'Purchased' %}
+                      for 12 months <span class="text-danger fw-bold">${{ "%.2f"|format((plan.price_excl_gst * (1 + plan.gst_percentage / 100)) / 12) }}/mo</span>
+                    {% else %}
+                      for {{ plan.duration_months }} months
+                    {% endif %}
+                  </p>
+                  
+                  <!-- Trial Warning Message - Changed from Chinese to English -->
+                  {% if plan.subscription_type == 'Trial' %}
+                  {% if not trial %}
+                  <div class="shadow-sm p-3 mb-3 bg-warning-subtle rounded">
+                      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                      <strong>Note:</strong> Only eligible for one free trial subscription
+                      <!-- Check Eligibility Button for Trial plans -->
+                      <form action="{{ url_for('premium.check_trial') }}" method="GET" class="mb-2">
+                        <button type="submit" id="checkEligibilityBtn" class="btn btn-success w-100">
+                          <i class="bi bi-question-circle me-2"></i>Check Eligibility for Trial
+                        </button>
+                      </form>
+                  </div>
+                  {% else %}
+                  <div class="shadow-sm p-3 mb-3 bg-info-subtle rounded">
+                    <i class="bi bi-calendar-check me-2"></i>
+                    <strong>Trial Period:</strong>
+                    <div class="mt-2">
+                        <div class="d-flex justify-content-between">
+                            <span>Start Date:</span>
+                            <span>{{ trial.start_date.strftime('%d %b %Y') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>End Date:</span>
+                            <span>{{ trial.expiry_date.strftime('%d %b %Y') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Duration:</span>
+                            <span>{{ plan.duration_months }} month</span>
+                        </div>
+                    </div>
+                  </div>
+                  {% endif %}
+                  {% endif %}
+                  
+                  <!-- Price Breakdown (same height in all cards) -->
+                  <div class="pricing-details my-4">
+                    <p class="mb-1"><strong>Price Breakdown:</strong></p>
+                    <div class="d-flex justify-content-between">
+                      <span>Base price:</span>
+                      <span>${% if plan.subscription_type == 'Trial' %}0{% else %}{{ "%.2f"|format(plan.price_excl_gst) }}{% endif %}</span>
+                    </div>
+                    {% if plan.discount_percent and plan.discount_percent > 0 %}
+                    <div class="d-flex justify-content-between text-danger">
+                      <span>Discount ({{ plan.discount_percent }}%):</span>
+                      <span>-${{ "%.2f"|format(plan.price_excl_gst * plan.discount_percent / 100) }}</span>
+                    </div>
+                    {% endif %}
+                    {% if plan.gst_percentage and plan.gst_percentage > 0 %}
+                    <div class="d-flex justify-content-between">
+                      <span>GST ({{ plan.gst_percentage }}%):</span>
+                      <span>${{ "%.2f"|format(plan.price_excl_gst * plan.gst_percentage / 100) }}</span>
+                    </div>
+                    {% endif %}
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold">
+                      <span>Total:</span>
+                      <span>${% if plan.subscription_type == 'Trial' %}0{% else %}{{ "%.2f"|format(plan.price_excl_gst * (1 + plan.gst_percentage / 100)) }}{% endif %}</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Feature List -->
+                  <ul class="list-unstyled mt-4 mb-4 text-start">
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>All premium features</li>
+                    {% if plan.discount_percent and plan.discount_percent > 0 %}
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>{{ plan.discount_percent }}% savings</li>
+                    {% endif %}
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>
+                      {% if plan.duration_months == 1 %}
+                        Monthly billing
+                      {% elif plan.duration_months == 3 %}
+                        Quarterly billing
+                      {% elif plan.duration_months == 12 %}
+                        Annual billing
+                      {% else %}
+                        {{ plan.duration_months }}-month billing
+                      {% endif %}
+                    </li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>Cancel anytime</li>
+                  </ul>
+                </div>
+                
+                <!-- Button Section (position at bottom) - Modified for Trial Subscription Logic -->
+                <div class="mt-auto">
+                  <div class="d-grid">
+                    {% if plan.subscription_type == 'Trial' %}
+                      <form action="{{ url_for('premium.subscribe_to_trial') }}" method="POST">
+                        <input type="hidden" name="plan_id" value="{{ plan.subscription_plan_id }}">
+                        <input type="hidden" name="subscription_type" value="Trial">
+                        <button type="submit" id="subscribeTrialBtn" class="btn btn-primary" 
+                          {% if not trial %}disabled{% endif %}>
+                          <i class="bi bi-unlock me-2"></i>Subscribe to Trial
+                        </button>
+                      </form>
+                    {% else %}
+                      <!-- Regular Subscribe Button for non-Trial plans -->
+                      <form action="{% if plan.subscription_type == 'Purchased' %}{{ url_for('premium.subscribe_to_premium_features') }}{% else %}{{ url_for('premium.premium_features') }}{% endif %}" method="POST">
+                        <input type="hidden" name="plan_id" value="{{ plan.subscription_plan_id }}">
+                        <input type="hidden" name="subscription_type" value="{% if plan.subscription_type == 'Trial' %}Trial{% else %}Purchased{% endif %}">
+                        <button type="submit" class="btn 
+                          {% if plan.duration_months == 1 %}btn-primary
+                          {% elif plan.duration_months == 3 %}btn-info
+                          {% elif plan.duration_months == 12 %}btn-warning
+                          {% else %}btn-primary{% endif %}">
+                          Subscribe
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        
+        <!-- Back Button -->
+        <div class="text-center mt-4">
+          {{ macros.yes_button('<i class="bi bi-arrow-left me-2"></i>Back to Premium Features', url_for('premium.premium_features'), 'btn-md') }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

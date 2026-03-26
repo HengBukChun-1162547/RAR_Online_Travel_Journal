@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% import "_macros.html" as macros %}
+
+{% block title %}Subscription Receipt{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Subscription Receipt</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Receipt Header -->
+                    <div class="text-center mb-4">
+                        <h4>Online Travel Journal</h4>
+                        <p class="text-muted">Receipt #{{ subscription.subscription_id }}</p>
+                        <h5>Subscription Details</h5>
+                    </div>
+
+                    <!-- Receipt Details -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="mb-2">User Information</h6>
+                            <p>Username: {{ subscription.username }}</p>
+                            <p>Subscription ID: {{ subscription.subscription_id }}</p>
+                            <p>Subscription Type: 
+                                {% if subscription.subscription_type == 'Purchased' %}
+                                    Purchased
+                                {% elif subscription.subscription_type == 'Gifted' %}
+                                    Gift
+                                {% elif subscription.subscription_type == 'Trial' %}
+                                    Trial
+                                {% endif %}
+
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <h6 class="mb-2">Subscription Dates</h6>
+                            <p>Start Date: {{ subscription.start_date.strftime('%d %b %Y') }}</p>
+                            <p>Expiry Date: {{ subscription.expiry_date.strftime('%d %b %Y') }}</p>
+                            <p>Duration: {{ subscription.duration_months }} month(s)</p>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Payment Details -->
+                    {% if payment and subscription.subscription_type == 'Purchased' %}
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h6 class="mb-2">Payment Details</h6>
+                                <p>Payment Date: {{ payment.payment_date.strftime('%d %b %Y') }}</p>
+                                <p>Payment Method: {{ payment.payment_method }}</p>
+                                <p>Card Number: {{ payment.card_first_four }}** **** ****</p>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <h6 class="mb-2">Billing Address</h6>
+                                <p>Country: {{ payment.billing_country }}</p>
+                                
+                                <!-- New Zealand users need GST information -->
+                                {% if payment.billing_country == 'New Zealand' %}
+                                    <div class="shadow-sm p-3 rounded text-center mt-3">
+                                        <h6 class="mb-1">GST Information</h6>
+                                        <p class="mb-0">GST Registration #: 123-456-789</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Cost Breakdown -->
+                        <div class="table-responsive mb-4">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Subscription Plan</th>
+                                        <th class="text-end">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>{{ subscription.plan_name }}</td>
+                                        <td class="text-end">
+                                            {% if payment.billing_country == 'New Zealand' %}
+                                                NZ ${{ (subscription.price_excl_gst) }}
+                                            {% else %}
+                                                NZ ${{ (subscription.price_excl_gst) }}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% if payment.billing_country == 'New Zealand' and subscription.gst_percentage %}
+                                        <tr>
+                                            <td>GST ({{ subscription.gst_percentage }}%)</td>
+                                            <td class="text-end">NZ ${{ (subscription.price_excl_gst * subscription.gst_percentage / 100) }}</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-active fw-bold">
+                                        <td>Total</td>
+                                        <td class="text-end">
+                                            {% if payment.billing_country == 'New Zealand' and subscription.gst_percentage %}
+                                                NZ ${{ (subscription.price_excl_gst * (1 + subscription.gst_percentage / 100)) }}
+                                            {% else %}
+                                                NZ ${{ (subscription.price_excl_gst) }}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% elif subscription.subscription_type == 'Gifted' %}
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading">Gift Subscription</h6>
+                            <p>This subscription was gifted by admin {{ subscription.admin_name }}.</p>
+                            <p class="mb-0">Reason: {{ subscription.note }}</p>
+                        </div>
+                    {% elif subscription.subscription_type == 'Trial' %}
+                        <div class="shadow-sm p-3 mb-3 bg-primary-subtle rounded text-center">
+                            <h6 class="alert-heading">Free Trial</h6>
+                            <p class="mb-0">This is a free trial subscription, no payment required.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('user.subscription_history', user_id=subscription.user_id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Subscription History
+                        </a>
+                        {% if subscription.subscription_type == 'Purchased' %}
+                            <button class="btn btn-outline-primary" onclick="window.print()">
+                                <i class="bi bi-printer"></i> Print Receipt
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

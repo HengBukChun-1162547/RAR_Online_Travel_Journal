@@ -1,0 +1,397 @@
+{% extends "base.html" %} 
+{% from '_macros.html' import yes_button, no_items_message, pagination_nav, changes_made_table %}
+{% block title %}Notifications{% endblock %} 
+
+{% block content %}
+<!-- New Announcement button (only for admin/editor) -->
+<div class="d-flex justify-content-end align-items-center mb-4">
+  {% if has_permission('create_announcements') %}
+  {{ yes_button('<i class="bi bi-plus-circle"></i> New Announcement', url_for('user.create_announcement')) }}
+  {% endif %}
+</div>
+
+<!-- Tabs Navigation -->
+<ul class="nav nav-tabs mb-4" id="notificationTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="announcements-tab" data-bs-toggle="tab" data-bs-target="#announcements" type="button" role="tab" aria-controls="announcements" aria-selected="true">
+      Announcements
+      {% if announcements_unread_count > 0 %}
+      <span class="badge bg-danger ms-2">{{ announcements_unread_count }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="subscriptions-tab" data-bs-toggle="tab" data-bs-target="#subscriptions" type="button" role="tab" aria-controls="subscriptions" aria-selected="false">
+      System Messages
+      {% if subscriptions_unread_count > 0 %}
+      <span class="badge bg-danger ms-2">{{ subscriptions_unread_count }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+  <button class="nav-link" id="edit-logs-tab" data-bs-toggle="tab" data-bs-target="#edit-logs" type="button" role="tab" aria-controls="edit-logs" aria-selected="false">
+    Edit Messages
+    {% if edit_logs_unread_count > 0 %}
+    <span class="badge bg-danger ms-2">{{ edit_logs_unread_count }}</span>
+    {% endif %}
+  </button>
+</li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="notificationsTabContent">
+  <!-- Announcements Tab -->
+  <div class="tab-pane fade show active" id="announcements" role="tabpanel" aria-labelledby="announcements-tab">
+    <!-- Announcements List -->
+    <div class="card">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary">Announcements</h5>
+        <div>
+          {% if announcements_unread_count > 0 %}
+          <button type="button" id="markAllAnnouncementsReadBtn" class="btn btn-sm" style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px; padding: 0.25rem 0.75rem; font-weight: 500;">
+            Read All
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 50%">Title</th>
+                <th style="width: 15%">Created By</th>
+                <th class="d-none d-md-table-cell" style="width: 17.5%">Created</th>
+                <th class="d-none d-md-table-cell" style="width: 17.5%">Last Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if announcements %} 
+                {% for announcement in announcements %}
+                <tr {% if announcement.announcement_id in unread_announcements %}class="table-primary"{% endif %}>
+                  <td class="position-relative">
+                    {% if announcement.announcement_id in unread_announcements %}
+                    <span class="badge bg-danger me-2">New</span>
+                    {% endif %}
+                    <span class="fw-medium">{{ announcement.title }}</span>
+                    <a href="{{ url_for('user.announcement_detail', announcement_id=announcement.announcement_id) }}" class="stretched-link"></a>
+                  </td>
+                  <td>{{ announcement.creator_name }}</td>
+                  <td class="d-none d-md-table-cell">{{ announcement.create_time.strftime('%d %b %Y %I:%M %p') }}</td>
+                  <td class="d-none d-md-table-cell">
+                    {% if announcement.update_time and announcement.update_time != announcement.create_time %} 
+                      {{ announcement.update_time.strftime('%d %b %Y %I:%M %p') }} 
+                    {% else %} 
+                      - 
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %} 
+              {% else %}
+                <tr>
+                  <td colspan="4" class="text-center py-4">
+                    {{ no_items_message('No announcements available', 'bi-megaphone', '', '', false) }}
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Announcements Pagination -->
+      {% if announcements_total_pages > 1 %}
+      <div class="card-footer pt-3">
+        <div class="d-flex justify-content-center">
+          <nav aria-label="Announcements pagination">
+            <ul class="pagination">
+              <!-- Previous page -->
+              <li class="page-item {% if announcements_current_page == 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('user.inform', tab='announcements', announcements_page=announcements_current_page-1) if announcements_current_page > 1 else '#' }}" style="color: rgba(18, 210, 15, 0.8);">Previous</a>
+              </li>
+              
+              <!-- Page numbers -->
+              {% for page_num in range(1, announcements_total_pages + 1) %}
+                {% if page_num == announcements_current_page %}
+                  <li class="page-item active">
+                    <span class="page-link" style="background-color: rgba(18, 210, 15, 0.8); border-color: rgba(18, 210, 15, 0.8); color: white;">{{ page_num }}</span>
+                  </li>
+                {% elif page_num <= 3 or page_num >= announcements_total_pages - 2 or (page_num >= announcements_current_page - 1 and page_num <= announcements_current_page + 1) %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('user.inform', tab='announcements', announcements_page=page_num) }}" style="color: rgba(18, 210, 15, 0.8);">{{ page_num }}</a>
+                  </li>
+                {% elif page_num == 4 and announcements_current_page > 5 or page_num == announcements_total_pages - 3 and announcements_current_page < announcements_total_pages - 4 %}
+                  <li class="page-item disabled"><span class="page-link" style="color: rgba(18, 210, 15, 0.4);">...</span></li>
+                {% endif %}
+              {% endfor %}
+              
+              <!-- Next page -->
+              <li class="page-item {% if announcements_current_page == announcements_total_pages %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('user.inform', tab='announcements', announcements_page=announcements_current_page+1) if announcements_current_page < announcements_total_pages else '#' }}" style="color: rgba(18, 210, 15, 0.8);">Next</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  
+  <!-- System Messages Tab -->
+  <div class="tab-pane fade" id="subscriptions" role="tabpanel" aria-labelledby="subscriptions-tab">
+    <!-- System Messages List -->
+    <div class="card">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary">System Messages</h5>
+        <div>
+          {% if subscriptions_unread_count > 0 %}
+          <button type="button" id="markAllSubscriptionsReadBtn" class="btn btn-sm" style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px; padding: 0.25rem 0.75rem; font-weight: 500;">
+            Read All
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 10%">Type</th>
+                <th style="width: 50%">Message</th>
+                <th class="d-none d-md-table-cell" style="width: 25%">Date</th>
+                <th class="d-none d-md-table-cell" style="width: 15%">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if subscription_messages %} 
+                {% for message in subscription_messages %}
+                <tr {% if message.notification_id in unread_subscriptions %}class="table-primary"{% endif %}>
+                  <td>
+                    <span class="badge bg-secondary">{{ message.type }}</span>
+                  <td>
+                    {% if message.notification_id in unread_subscriptions %}
+                    <span class="badge bg-danger me-2">New</span>
+                    {% endif %}
+                    <span class="fw-medium">{{ message.message }}</span>
+                  </td>
+                  <td class="d-none d-md-table-cell">{{ message.created_at.strftime('%d %b %Y %I:%M %p') }}</td>
+                  <td>
+                    {% if message.notification_id in unread_subscriptions %}
+                      <button type="button" class="btn btn-sm mark-as-read-btn" data-notification-id="{{ message.notification_id }}" style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px; padding: 0.25rem 0.75rem; font-weight: 500;">
+                        Read
+                      </button>
+                    {% else %}
+                      <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+                        Read
+                      </button>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %} 
+              {% else %}
+                <tr>
+                  <td colspan="4" class="text-center py-4">
+                    {{ no_items_message('No system messages available', 'bi-inbox', '', '', false) }}
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Subscription Messages Pagination -->
+      {% if subscriptions_total_pages > 1 %}
+      <div class="card-footer pt-3">
+        <div class="d-flex justify-content-center">
+          <nav aria-label="Subscription messages pagination">
+            <ul class="pagination">
+              <!-- Previous page -->
+              <li class="page-item {% if subscriptions_current_page == 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('user.inform', tab='subscriptions', subscriptions_page=subscriptions_current_page-1) if subscriptions_current_page > 1 else '#' }}" style="color: rgba(18, 210, 15, 0.8);">Previous</a>
+              </li>
+              
+              <!-- Page numbers -->
+              {% for page_num in range(1, subscriptions_total_pages + 1) %}
+                {% if page_num == subscriptions_current_page %}
+                  <li class="page-item active">
+                    <span class="page-link" style="background-color: rgba(18, 210, 15, 0.8); border-color: rgba(18, 210, 15, 0.8); color: white;">{{ page_num }}</span>
+                  </li>
+                {% elif page_num <= 3 or page_num >= subscriptions_total_pages - 2 or (page_num >= subscriptions_current_page - 1 and page_num <= subscriptions_current_page + 1) %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('user.inform', tab='subscriptions', subscriptions_page=page_num) }}" style="color: rgba(18, 210, 15, 0.8);">{{ page_num }}</a>
+                  </li>
+                {% elif page_num == 4 and subscriptions_current_page > 5 or page_num == subscriptions_total_pages - 3 and subscriptions_current_page < subscriptions_total_pages - 4 %}
+                  <li class="page-item disabled"><span class="page-link" style="color: rgba(18, 210, 15, 0.4);">...</span></li>
+                {% endif %}
+              {% endfor %}
+              
+              <!-- Next page -->
+              <li class="page-item {% if subscriptions_current_page == subscriptions_total_pages %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('user.inform', tab='subscriptions', subscriptions_page=subscriptions_current_page+1) if subscriptions_current_page < subscriptions_total_pages else '#' }}" style="color: rgba(18, 210, 15, 0.8);">Next</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <!-- Edit Logs Tab -->
+  <div class="tab-pane fade" id="edit-logs" role="tabpanel" aria-labelledby="edit-logs-tab">
+    <!-- Edit Logs List -->
+    <div class="card">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary">Edit Messages</h5>
+        <div>
+          {% if edit_logs_unread_count > 0 %}
+          <button type="button" id="markAllEditLogsReadBtn" class="btn btn-sm" style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px; padding: 0.25rem 0.75rem; font-weight: 500;">
+            Read All
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 12%">Editor</th>
+                <th style="width: 18%">Reason</th>
+                <th style="width: 35%">Change Made</th>
+                <th class="d-none d-md-table-cell" style="width: 20%">Date</th>
+                <th style="width: 15%">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if edit_logs %} 
+                {% for log in edit_logs %}
+                {% if log.edit_log_id in unread_edit_log_ids %}
+                <tr {% if log.edit_log_id in unread_edit_log_ids %}class="table-primary"{% endif %}>
+                  <td>
+                    {% if log.edit_log_id in unread_edit_log_ids %}
+                    <span class="badge bg-danger me-2">New</span>
+                    {% endif %}
+                    {{ log.editor_username }}
+                  </td>
+                  <td>
+                    <small>{{ log.edit_reason }}</small>
+                  </td>
+                  <td>
+                    {{ changes_made_table(log.summary, ['cover_image', 'event_image'], loop.index0) }}
+                  </td>
+                  <td class="d-none d-md-table-cell">{{ log.edited_at.strftime('%d %b %Y %I:%M %p') }}</td>
+                  <td>
+                    {% if log.edit_log_id in unread_edit_log_ids %}
+                      <button type="button" class="btn btn-sm mark-edit-log-read-btn" data-edit-log-id="{{ log.edit_log_id }}" style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px; padding: 0.25rem 0.75rem; font-weight: 500;">
+                        Read
+                      </button>
+                      <!-- Hidden link for JavaScript to find the target URL -->
+                      {% if log.event_id %}
+                        <a href="{{ url_for('event.event_detail', event_id=log.event_id) }}" class="btn d-none" style="display: none;"></a>
+                      {% elif log.journey_id %}
+                        <a href="{{ url_for('journey.journey_detail', journey_id=log.journey_id) }}" class="btn d-none" style="display: none;"></a>
+                      {% endif %}
+                    {% else %}
+                      <span class="badge bg-secondary">Read</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endif %}
+                {% endfor %} 
+              {% else %}
+                <tr>
+                  <td colspan="5" class="text-center py-4">
+                    {{ no_items_message('No edit logs available', 'bi-journal-text', '', '', false) }}
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Edit Logs Pagination -->
+      {% if edit_logs_total_pages > 1 %}
+      <div class="card-footer pt-3">
+        <div class="d-flex justify-content-center">
+          <nav aria-label="Edit logs pagination">
+            <ul class="pagination">
+              <!-- Previous page -->
+              <li class="page-item {% if edit_logs_current_page == 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('user.inform', tab='edit-logs', edit_logs_page=edit_logs_current_page-1) if edit_logs_current_page > 1 else '#' }}" style="color: rgba(18, 210, 15, 0.8);">Previous</a>
+              </li>
+              
+              <!-- Page numbers -->
+              {% for page_num in range(1, edit_logs_total_pages + 1) %}
+                {% if page_num == edit_logs_current_page %}
+                  <li class="page-item active">
+                    <span class="page-link" style="background-color: rgba(18, 210, 15, 0.8); border-color: rgba(18, 210, 15, 0.8); color: white;">{{ page_num }}</span>
+                  </li>
+                {% elif page_num <= 3 or page_num >= edit_logs_total_pages - 2 or (page_num >= edit_logs_current_page - 1 and page_num <= edit_logs_current_page + 1) %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('user.inform', tab='edit-logs', edit_logs_page=page_num) }}" style="color: rgba(18, 210, 15, 0.8);">{{ page_num }}</a>
+                  </li>
+                {% elif page_num == 4 and edit_logs_current_page > 5 or edit_logs_total_pages - 3 and edit_logs_current_page < edit_logs_total_pages - 4 %}
+                  <li class="page-item disabled"><span class="page-link" style="color: rgba(18, 210, 15, 0.4);">...</span></li>
+                {% endif %}
+              {% endfor %}
+              
+              <!-- Next page -->
+              <li class="page-item {% if edit_logs_current_page == edit_logs_total_pages %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('user.inform', tab='edit-logs', edit_logs_page=edit_logs_current_page+1) if edit_logs_current_page < edit_logs_total_pages else '#' }}" style="color: rgba(18, 210, 15, 0.8);">Next</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the tab parameter from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    
+    // If there's a tab parameter, activate the corresponding tab
+    if (activeTab) {
+        // Remove active class from all tabs
+        document.querySelectorAll('#notificationTabs .nav-link').forEach(tab => {
+            tab.classList.remove('active');
+            tab.setAttribute('aria-selected', 'false');
+        });
+        
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.remove('show', 'active');
+        });
+        
+        // Activate the specified tab
+        let targetTab = null;
+        let targetPane = null;
+        
+        switch(activeTab) {
+            case 'subscriptions':
+                targetTab = document.getElementById('subscriptions-tab');
+                targetPane = document.getElementById('subscriptions');
+                break;
+            case 'edit-logs':
+                targetTab = document.getElementById('edit-logs-tab');
+                targetPane = document.getElementById('edit-logs');
+                break;
+            default:
+                targetTab = document.getElementById('announcements-tab');
+                targetPane = document.getElementById('announcements');
+        }
+        
+        if (targetTab && targetPane) {
+            targetTab.classList.add('active');
+            targetTab.setAttribute('aria-selected', 'true');
+            targetPane.classList.add('show', 'active');
+        }
+    }
+});
+</script>

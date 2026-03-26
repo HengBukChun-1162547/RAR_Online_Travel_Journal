@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+{% from "_macros.html" import follow_button, yes_button, content_card, no_items_message, role_badge %}
+{% import "_macros.html" as macros %}
+
+{% block title %} {% if selected_user_id %}{{ profile.username }}'s Profile{% else %}My Profile{% endif %} {% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <!-- Profile Header Section -->
+        <div class="col-md-11 col-lg-10">
+            {% set profile_header %}{% if is_staff %}User Management{% elif not selected_user_id %}My Profile{% else %}Public Profile{% endif %}{% endset %}
+            {% set profile_content %}
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center">
+                            <!-- Profile Image -->
+                            {% if profile.profile_image %}
+                                <img src="{{ url_for('static', filename=profile.profile_image) }}"
+                                     class="rounded-circle border border-3 border-secondary"
+                                     width="120" height="120"
+                                     alt="{{ profile.username }}'s Profile">
+                            {% else %}
+                                <div class="rounded-circle d-flex justify-content-center align-items-center bg-light"
+                                     style="width: 120px; height: 120px; margin: 0 auto;">
+                                    <i class="bi bi-person-circle text-secondary" style="font-size: 100px;"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-9">
+                            <!-- Username, Role and Follow Button -->
+                            <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
+                                <h5 class="mb-0">{{ profile.username }}</h5>
+                                {% if selected_user_id %}
+                                    {{ macros.role_badge(profile.role, 'fs-6 me-1') }}
+                                {% else %}
+                                    {{ macros.role_badge(session.role, 'fs-6 me-1') }}
+                                {% endif %}
+
+                                <!-- Follow User Button (moved here) -->
+                                {% if selected_user_id != session['user_id'] and selected_user_id and has_permission('follow_user') and not is_staff %}
+                                    {% if session.role != 'traveller' %}
+                                        {% if not is_following_user %}
+                                        <form method="POST" action="{{ url_for('premium.follow_user' )}}" style="display: inline;">
+                                            <input type="hidden" name="followed_user_id" value="{{ selected_user_id }}">
+                                            {% if request.args.get('page') %}
+                                            <input type="hidden" name="page" value="{{ request.args.get('page') }}">
+                                            {% endif %}
+                                            {{ follow_button('<i class="bi bi-person-plus"></i> Follow', 'followUserBtn', 'btn-sm') }}
+                                            <script>
+                                            document.getElementById('followUserBtn').onclick = function() {
+                                                this.closest('form').submit();
+                                            };
+                                            </script>
+                                        </form>
+                                        {% else %}
+                                        <form method="POST" action="{{ url_for('premium.unfollow_user' )}}" style="display: inline;">
+                                            <input type="hidden" name="followed_user_id" value="{{ selected_user_id }}">
+                                            {% if request.args.get('page') %}
+                                            <input type="hidden" name="page" value="{{ request.args.get('page') }}">
+                                            {% endif %}
+                                            <button type="submit" class="btn btn-secondary btn-sm" style="border-radius: 50px;">
+                                                <i class="bi bi-person-check"></i> Following
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    {% else %}
+                                        {{ follow_button('<i class="bi bi-person-plus"></i> Follow', 'followUserPremiumBtn', 'btn-sm') }}
+                                        <script>
+                                        document.getElementById('followUserPremiumBtn').onclick = function() {
+                                            showFollowUserPremiumModal('Follow User', event);
+                                        };
+                                        </script>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            
+                            
+                            <div class="profile-details mb-3">
+                                <!-- Name and Email (only for own profile or admin viewing) -->
+                                {% if not selected_user_id or is_staff %}
+                                    {% if profile.first_name or profile.last_name %}
+                                    <p class="text-dark mb-1">
+                                        <i class="bi bi-person"></i> 
+                                        <strong>{{ profile.first_name }} {{ profile.last_name }}</strong>
+                                    </p>
+                                    {% endif %}
+                                    
+                                    {% if profile.email %}
+                                    <p class="text-dark mb-1">
+                                        <i class="bi bi-envelope"></i> {{ profile.email }}
+                                    </p>
+                                    {% endif %}
+                                {% endif %}
+                                <!-- Location if available -->
+                                {% if profile.location %}
+                                <p class="text-muted mb-2">
+                                    <i class="bi bi-geo-alt"></i> {{ profile.location }}
+                                </p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Description -->
+                            <div class="profile-description mb-3">
+                                {% if profile.description %}
+                                    <p class="mb-0">{{ profile.description }}</p>
+                                {% else %}
+                                    <p class="text-muted mb-0">No description yet</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Edit Profile Buttons (only for own profile) -->
+                            {% if not selected_user_id %}
+                            <div class="d-flex gap-2 flex-wrap">
+                                {{ macros.yes_button('Edit Profile', url_for('user.edit_profile', selected_user_id=profile.user_id), 'btn-sm') }}
+                                {{ macros.yes_button('Change Photo', url_for('user.edit_profile_image', selected_user_id=profile.user_id), 'btn-sm') }}
+                                {{ macros.yes_button('Change Password', url_for('user.change_password', selected_user_id=profile.user_id), 'btn-sm') }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+            {% endset %}
+            {{ macros.content_card(profile_header, profile_content, with_shadow=true) }}
+
+            <!-- Admin Controls (only for admins viewing other profiles) -->
+            {% if is_staff and selected_user_id and has_permission('view_user_management') %}
+            {% set admin_content %}
+                    <div class="row g-3">
+                        {% if has_permission('update_user_status') %}
+                        <div class="col-md-6">
+                            <label class="form-label">User Status</label>
+                            <form id="status_form" action="/users" method="POST">
+                                <input type="hidden" name="user_id" value="{{ profile['user_id'] }}">
+                                <input type="hidden" name="page" value="profile">
+                                <select name="status" class="form-select" {% if session['user_id'] == profile['user_id'] %}disabled title="You cannot change your own account status."{% endif %}
+                                        onchange="if (confirm('Change user status?')) { this.form.submit(); }"
+                                        data-previous-value="{{ profile['status'] }}">
+                                    <option value="active" {% if profile['status'] == 'active' %}selected{% endif %}>✅ Active</option>
+                                    <option value="banned" {% if profile['status'] == 'banned' %}selected{% endif %}>🚫 Banned</option>
+                                    <option value="restricted" {% if profile['status'] == 'restricted' %}selected{% endif %}>⚠ Block</option>
+                                </select>
+                            </form>
+                        </div>
+                        {% endif %}
+
+
+                        <div class="col-md-6">
+                            <label class="form-label">User Role</label>
+                            <form id="role_form" action="/users" method="POST">
+                                <input type="hidden" name="user_id" value="{{ profile['user_id'] }}">
+                                <input type="hidden" name="page" value="profile">
+                                <select name="role" class="form-select" {% if session['user_id'] == profile['user_id'] %}disabled title="You cannot change your own account role."{% endif %}
+                                        onchange="if (confirm('Change user role?')) { this.form.submit(); }"
+                                        data-previous-value="{{ profile['role'] }}"
+                                        {% if not has_permission('update_roles') %}disabled{% endif %}>
+                                    <option value="traveller" {% if profile['role'] == 'traveller' %}selected{% endif %}>🧳 Traveller</option>
+                                    <option value="editor" {% if profile['role'] == 'editor' %}selected{% endif %}>✍ Editor</option>
+                                    <option value="admin" {% if profile['role'] == 'admin' %}selected{% endif %}>🔧 Admin</option>
+                                    <option value="premium" {% if profile['role'] == 'premium' %}selected{% endif %} disabled>✨ Premium</option>
+                                    <option value="trial" {% if profile['role'] == 'trial' %}selected{% endif %} disabled>🔍 Trial</option>
+                                    <option value="support_tech" {% if profile['role'] == 'support_tech' %}selected{% endif %}>🛠️ Support Tech</option>
+                                </select>
+                            </form>
+                        </div>
+
+                    </div>
+
+                    <div class="mt-3 row g-2">
+                        {% if has_permission('create_gift') and has_permission('receive_gift', profile['user_id']) %}
+                        <div class="col">
+                            {{ macros.yes_button('Gift Subscription', url_for('user.gift_subscription', user_id=profile.user_id), 'btn-sm') }}
+                        </div>
+                        {% endif %}
+                        <div class="col">
+                            {{ macros.yes_button('Subscription History', url_for('premium.subscription_history', user_id=profile.user_id), 'btn-sm') }}
+                        </div>
+                    </div>
+            {% endset %}
+            {{ macros.content_card('Admin Controls', admin_content, with_shadow=true) }}
+            
+            <!-- Back to User Management Button -->
+            <div class="mt-3">
+                {{ macros.yes_button('<i class="bi bi-arrow-left"></i> Back to User Management', url_for('user.users'), 'btn-sm') }}
+            </div>
+            {% endif %}
+
+            {% if not is_staff %}
+            <!-- Achievements Section -->
+            {% set achievements_content %}
+                    <!-- General Achievements Subsection -->
+                    <div class="achievements-subsection mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <h5 class="mb-0 text-primary"><i class="bi bi-trophy-fill me-2"></i>General Achievements</h5>
+                        </div>
+                    {% set general_achievements = achievements | selectattr('is_premium', 'equalto', false) | list if achievements else [] %}
+                    {% if general_achievements %}
+                    <!-- General Achievement badges -->
+                    <div class="row g-3">
+                        {% for achievement in general_achievements %}
+                        {% set user_achievement = user_achievements.get(achievement.achievement_type_id) if user_achievements else None %}
+                        {% set can_earn_achievement = has_permission('view_general_achievements', selected_user_id if selected_user_id else session['user_id']) %}
+                        <div class="col-12 col-md-4 col-lg-3">
+                            <div class="achievement-item text-center p-3 border rounded position-relative 
+                            {{ 'achievement-earned' if user_achievement and can_earn_achievement else 'achievement-locked' }}" 
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                title="{{ achievement.description }}">
+                                
+                                <!-- Earned Check Mark (top right) -->
+                                {% if user_achievement and can_earn_achievement %}
+                                <div class="achievement-earned-badge">
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Achievement Icon -->
+                                <div class="achievement-icon-container mb-2">
+                                    {% if '.' in achievement.icon_path %}
+                                    <img src="{{ url_for('static', filename=achievement.icon_path) }}"
+                                        class="img-fluid achievement-icon"
+                                        style="width: 80px; height: 80px;">
+                                    {% else %}
+                                    <i class="{{ achievement.icon_path }} achievement-icon" style="font-size: 80px;"></i>
+                                    {% endif %}
+                                    
+                                    <!-- Lock overlay for unearned achievements -->
+                                    {% if not user_achievement or not can_earn_achievement %}
+                                    <div class="achievement-lock-overlay">
+                                        <i class="bi bi-lock-fill text-white"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Achievement Title -->
+                                <h6 class="achievement-title">{{ achievement.title }}</h6>
+                                
+                                <!-- Progress Bar and Stats (only for earned achievements) -->
+                                {% if user_achievement %}
+                                <div class="achievement-progress mt-2">
+                                    <!-- Progress Bar -->
+                                    {% if user_achievement.target_value > 1 and not user_achievement.is_unlocked %}
+                                    <div class="progress mb-1" style="height: 8px;">
+                                        <div class="progress-bar bg-success" 
+                                            role="progressbar" 
+                                            style="width: {{ (user_achievement.current_value / user_achievement.target_value * 100)|round(1) }}%"
+                                            aria-valuenow="{{ user_achievement.current_value }}" 
+                                            aria-valuemin="0" 
+                                            aria-valuemax="{{ user_achievement.target_value }}">
+                                        </div>
+                                    </div>
+                                    <!-- Progress Text -->
+                                    <small class="text-success fw-bold">
+                                        {{ user_achievement.current_value }}/{{ user_achievement.target_value }} 
+                                        ({{ (user_achievement.current_value / user_achievement.target_value * 100)|round(1) }}%)
+                                    </small>
+                                    {% endif %}
+                                    
+                                    <!-- Earned Date -->
+                                    {% if user_achievement.unlocked_at %}
+                                    <div class="mt-1">
+                                        <small class="text-muted">
+                                            <i class="bi bi-calendar-check"></i> 
+                                            {{ user_achievement.unlocked_at.strftime('%d %b %Y') }}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    {{ macros.no_items_message('No general achievements available yet.', 'bi-trophy') }}
+                    {% endif %}
+                    </div>
+
+                    <!-- Divider -->
+                    <hr class="my-4">
+
+                    <!-- Premium Achievements Subsection -->
+                    <div class="achievements-subsection">
+                        <div class="d-flex align-items-center mb-3">
+                            <h5 class="mb-0 text-warning"><i class="bi bi-star-fill me-2"></i>Premium Achievements</h5>
+                        </div>
+                    {% set premium_achievements = achievements | selectattr('is_premium', 'equalto', true) | list if achievements else [] %}
+                    {% if premium_achievements %}
+                    <!-- Premium Achievement badges -->
+                    <div class="row g-3">
+                        {% for achievement in premium_achievements %}
+                        {% set user_achievement = user_achievements.get(achievement.achievement_type_id) if user_achievements else None %}
+                        {% set can_earn_achievement = has_permission('view_premium_achievements', selected_user_id if selected_user_id else session['user_id']) %}
+                        <div class="col-12 col-md-4 col-lg-3">
+                            <div class="achievement-item text-center p-3 border rounded position-relative 
+                            {{ 'achievement-earned achievement-premium' if user_achievement and can_earn_achievement else 'achievement-locked' }}
+                            {{ 'achievement-premium-locked' if not can_earn_achievement else '' }}" 
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                title="{% if not can_earn_achievement %}🔒 Premium Achievement - Upgrade to unlock{% else %}{{ achievement.description }}{% endif %}">
+                                
+                                <!-- Earned Check Mark (top right) -->
+                                {% if user_achievement and can_earn_achievement %}
+                                <div class="achievement-earned-badge">
+                                    <i class="bi bi-check-circle-fill text-warning"></i>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Achievement Icon -->
+                                <div class="achievement-icon-container mb-2">
+                                    {% if '.' in achievement.icon_path %}
+                                    <img src="{{ url_for('static', filename=achievement.icon_path) }}"
+                                        class="img-fluid achievement-icon"
+                                        style="width: 80px; height: 80px;">
+                                    {% else %}
+                                    <i class="{{ achievement.icon_path }} achievement-icon" style="font-size: 80px;"></i>
+                                    {% endif %}
+                                    
+                                    <!-- Lock overlay for unearned achievements -->
+                                    {% if not user_achievement or not can_earn_achievement %}
+                                    <div class="achievement-lock-overlay">
+                                        {% if not can_earn_achievement %}
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                        {% else %}
+                                        <i class="bi bi-lock-fill text-white"></i>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Achievement Title -->
+                                <h6 class="achievement-title">
+                                    {{ achievement.title }}
+                                    <i class="bi bi-star-fill text-warning ms-1" style="font-size: 0.8em;"></i>
+                                </h6>
+                                
+                                <!-- Progress Bar and Stats (only for earned achievements) -->
+                                {% if user_achievement and can_earn_achievement %}
+                                <div class="achievement-progress mt-2">
+                                    <!-- Progress Bar -->
+                                    {% if user_achievement.target_value > 1 and not user_achievement.is_unlocked %}
+                                    <div class="progress mb-1" style="height: 8px;">
+                                        <div class="progress-bar bg-warning" 
+                                            role="progressbar" 
+                                            style="width: {{ (user_achievement.current_value / user_achievement.target_value * 100)|round(1) }}%"
+                                            aria-valuenow="{{ user_achievement.current_value }}" 
+                                            aria-valuemin="0" 
+                                            aria-valuemax="{{ user_achievement.target_value }}">
+                                        </div>
+                                    </div>
+                                    <!-- Progress Text -->
+                                    <small class="text-warning fw-bold">
+                                        {{ user_achievement.current_value }}/{{ user_achievement.target_value }} 
+                                        ({{ (user_achievement.current_value / user_achievement.target_value * 100)|round(1) }}%)
+                                    </small>
+                                    {% endif %}
+                                    
+                                    <!-- Earned Date -->
+                                    {% if user_achievement.unlocked_at %}
+                                    <div class="mt-1">
+                                        <small class="text-muted">
+                                            <i class="bi bi-calendar-check"></i> 
+                                            {{ user_achievement.unlocked_at.strftime('%d %b %Y') }}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    {{ macros.no_items_message('No premium achievements available yet.', 'bi-star-fill') }}
+                    {% endif %}
+                    </div>
+            {% endset %}
+            {{ macros.content_card('Achievements', achievements_content, with_shadow=true) }}
+            {% endif %}
+
+
+        </div>
+    </div>
+</div>
+
+<!-- Premium Feature Modal -->
+{{ macros.premium_feature_modal('Follow User', 'followUserModal') }}
+
+<style>
+.achievements-subsection {
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.achievement-item {
+    transition: transform 0.2s;
+    cursor: pointer;
+    min-height: 240px;
+}
+
+.achievement-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
+
+.achievement-locked {
+    opacity: 0.4;
+    background-color: #f8f9fa;
+}
+
+.achievement-locked .achievement-icon {
+    filter: grayscale(100%);
+}
+
+.achievement-locked .achievement-title {
+    color: #6c757d;
+}
+
+.achievement-earned {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffffff 100%);
+    border-color: #28a745 !important;
+}
+
+.achievement-earned.achievement-premium {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffffff 100%);
+    border-color: #ffc107 !important;
+}
+
+.achievement-earned .achievement-icon {
+    filter: none;
+}
+
+.achievement-earned .achievement-title {
+    color: #212529;
+    font-weight: 600;
+}
+
+.achievement-icon-container {
+    position: relative;
+    display: inline-block;
+}
+
+.achievement-lock-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.achievement-progress .progress {
+    background-color: #e9ecef;
+    border-radius: 10px;
+}
+
+.achievement-progress .progress-bar {
+    border-radius: 10px;
+    transition: width 0.6s ease;
+}
+
+.achievement-premium-locked {
+    border-color: #ffc107 !important;
+    background: linear-gradient(135deg, #fff3cd 0%, #f8f9fa 100%);
+}
+
+.achievement-earned-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 18px;
+    z-index: 10;
+}
+
+@media (max-width: 768px) {
+    .achievement-item {
+        padding: 1rem !important;
+        min-height: 220px;
+    }
+    
+    .achievement-icon {
+        width: 60px !important;
+        height: 60px !important;
+        font-size: 60px !important;
+    }
+    
+    .achievement-title {
+        font-size: 0.9rem;
+    }
+}
+
+.tooltip-inner {
+    max-width: 200px;
+    text-align: left;
+}
+</style>
+
+<!-- JavaScript files -->
+<script src="{{ url_for('static', filename='js/premium_features_modal.js') }}"></script>
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            html: true,
+            delay: { show: 500, hide: 100 }
+        });
+    });
+
+    // Setup follow button click handler
+    const followUserBtn = document.getElementById('followUserBtn');
+    if (followUserBtn) {
+        followUserBtn.onclick = function() {
+            this.closest('form').submit();
+        };
+    }
+});
+
+
+</script>
+{% endblock %}

@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% from '_macros.html' import content_card, no_button, form_submit_button, title_input, date_input, description_textarea, yes_button %}
+{% block title %}{% if mode == 'edit' %}Edit Journey{% else %}New Journey{% endif %}{% endblock %}
+
+{% block content %}
+{% set header_title %}{% if mode == 'edit' %}Edit Journey{% else %}New Journey{% endif %}{% endset %}
+{% set form_content %}
+        <form class="needs-validation" action="{% if mode == 'edit' %}{{ url_for('journey.edit_journey', journey_id=journey.journey_id) }}{% else %}{{ url_for('journey.add_journey') }}{% endif %}" method="POST" novalidate>
+            <input type="hidden" name="mode" value="{{ mode }}">
+            {% if mode == 'edit' %}
+            <input type="hidden" name="journey_id" value="{{ journey.journey_id }}">
+            <input type="hidden" name="page_auth" value="{{ page_auth }}">
+            {% endif %}
+            {{ title_input('title', journey.title if journey else '', 50, 5, title_invalid) }}
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    {{ date_input('start_date', 'Start Date', journey.start_date if journey else today.isoformat()) }}
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center mb-2">
+                        <label for="sharing" class="form-label mb-0">
+                            {% if user.status == "restricted" %}
+                                <span class="text-danger">Restricted Sharing</span>
+                            {% else %}
+                                Sharing
+                            {% endif %}
+                            <span class="text-danger">*</span>
+                        </label>
+                        {% if user.status == "restricted" %}
+                        {{ yes_button('<i class="bi bi-envelope-exclamation"></i> Appeal', url_for('helpdesk.create_restricted_appeal'), 'btn-sm ms-2', 'Appeal your restricted sharing status') }}
+                        {% endif %}
+                    </div>
+                    {% if mode == 'edit' and session['role'] in ('admin','editor') and session['user_id'] != journey.user_id %}
+                        <input type="text" class="form-control" id="sharing" name="sharing" value="{{journey.status}}" disabled>
+                    {% else %}
+                        <select class="form-select" id="sharing" name="sharing" required>
+                        {% if user.status == "restricted" %}
+                            <option value="private">Private</option>
+                    
+                        {% else %}
+                            <option value="private" {% if journey and journey.status == 'private' %}selected{% endif %}>Private</option>
+                            <option value="public" {% if journey and journey.status == 'public' %}selected{% endif %}>Public</option>
+                            {% if session['role'] == 'traveller' and journey and journey.status == 'published' %}
+                                <!-- Hidden actual selected value -->
+                                <option value="published" selected hidden>Published</option>
+                                <!-- Shown but disabled -->
+                                <option value="published" disabled>Published (Not editable)</option>
+                            {% elif session['role'] != 'traveller'%}
+                                <option value="published"
+                                    {% if journey and journey.status == 'published' %}selected{% endif %}>
+                                    Published
+                                </option>
+                            {% endif %}
+                            
+                        {% endif %}
+                        </select>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {{ description_textarea('description', journey.description if journey else '', 5, 5, 300, description_invalid) }}
+            
+            <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+                {{ no_button('<i class="bi bi-x-circle me-1"></i>Cancel', url_for('journey.list_journey', page_auth='private'), 'btn-md') }}
+                {{ form_submit_button('<i class="bi bi-' + ('save' if mode == 'edit' else 'plus-circle') + ' me-1"></i>' + ('Save Changes' if mode == 'edit' else 'Add Journey'), 'btn-md') }}
+            </div>
+        </form>
+{% endset %}
+
+{{ content_card(header_title, form_content, with_shadow=true) }}
+
+<style>
+/* Responsive design for journey form */
+@media (max-width: 767.98px) {
+    .row.mb-3 {
+        margin-bottom: 1rem !important;
+    }
+    
+    .col-md-6 {
+        margin-bottom: 1rem;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch !important;
+    }
+    
+    .d-flex.justify-content-between .btn {
+        width: 100%;
+        margin: 0;
+        justify-content: center !important;
+    }
+    
+    /* Ensure form elements are properly spaced on mobile */
+    .form-control, .form-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .d-flex.justify-content-between .btn {
+        min-width: 120px;
+    }
+}
+
+/* Ensure buttons maintain pill shape across all screen sizes */
+.btn[style*="border-radius: 50px"] {
+    border-radius: 50px !important;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+/* Button hover effects protection */
+.btn[style*="border-radius: 50px"]:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+</style>
+
+<script>
+// Journey Form Script v1.1 - Force refresh
+document.addEventListener('DOMContentLoaded', function() {
+    // Character counter for title input
+    const titleInput = document.getElementById('title');
+    const titleCounter = document.getElementById('titleCounter');
+    
+    if (titleInput && titleCounter) {
+        function updateTitleCounter() {
+            const currentLength = titleInput.value.length;
+            const maxLength = parseInt(titleInput.getAttribute('maxlength')) || 50;
+            titleCounter.textContent = currentLength + '/' + maxLength;
+            
+            // Update color based on length
+            if (currentLength >= maxLength * 0.9) {
+                titleCounter.classList.add('text-warning');
+                titleCounter.classList.remove('text-muted');
+            } else if (currentLength >= maxLength) {
+                titleCounter.classList.add('text-danger');
+                titleCounter.classList.remove('text-muted', 'text-warning');
+            } else {
+                titleCounter.classList.add('text-muted');
+                titleCounter.classList.remove('text-warning', 'text-danger');
+            }
+        }
+        
+        // Update counter on input
+        titleInput.addEventListener('input', updateTitleCounter);
+        
+        // Force set correct maxlength to 50
+        titleInput.setAttribute('maxlength', '50');
+        
+        // Force update counter display immediately
+        const currentLength = titleInput.value.length;
+        titleCounter.textContent = currentLength + '/50';
+        
+        // Initialize counter
+        updateTitleCounter();
+    }
+    
+    // Character counter for description textarea
+    const descriptionInput = document.getElementById('description');
+    const descriptionCounter = document.getElementById('descriptionCounter');
+    
+    if (descriptionInput && descriptionCounter) {
+        function updateDescriptionCounter() {
+            const currentLength = descriptionInput.value.length;
+            const maxLength = descriptionInput.getAttribute('maxlength') || 300;
+            descriptionCounter.textContent = currentLength + '/' + maxLength;
+            
+            // Update color based on length
+            if (currentLength >= maxLength * 0.9) {
+                descriptionCounter.classList.add('text-warning');
+                descriptionCounter.classList.remove('text-muted');
+            } else if (currentLength >= maxLength) {
+                descriptionCounter.classList.add('text-danger');
+                descriptionCounter.classList.remove('text-muted', 'text-warning');
+            } else {
+                descriptionCounter.classList.add('text-muted');
+                descriptionCounter.classList.remove('text-warning', 'text-danger');
+            }
+        }
+        
+        // Update counter on input
+        descriptionInput.addEventListener('input', updateDescriptionCounter);
+        
+        // Initialize counter
+        updateDescriptionCounter();
+    }
+    
+    // Form validation enhancement
+    const form = document.querySelector('.needs-validation');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    }
+    
+    // Additional check after page fully loads
+    setTimeout(function() {
+        const titleInput = document.getElementById('title');
+        const titleCounter = document.getElementById('titleCounter');
+        if (titleInput && titleCounter) {
+            titleInput.setAttribute('maxlength', '50');
+            const currentLength = titleInput.value.length;
+            titleCounter.textContent = currentLength + '/50';
+        }
+    }, 100);
+});
+</script>
+{% endblock %}

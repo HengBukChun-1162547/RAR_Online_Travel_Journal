@@ -1,0 +1,1080 @@
+{# macros.html #} 
+
+{# ========================================
+   FORM INPUT COMPONENTS
+   ======================================== #}
+
+{# Username Input Component - With Validation
+   Usage: {{ macros.username_input_with_validation('username', user_input.username if user_input else '', errors) }}
+   Parameters:
+   - name: input field name attribute
+   - value: current input value (optional)
+   - errors: validation errors dict (optional)
+#}
+{% macro username_input_with_validation(name, value='', errors=None) %}
+<div class="mb-4">
+    <label for="{{ name }}" class="form-label">
+        <i class="bi bi-person-fill me-2"></i>Username
+        <span class="text-danger">*</span>
+    </label>
+    <input type="text" class="form-control{% if errors and errors[name] %} is-invalid{% endif %}" 
+           id="{{ name }}" name="{{ name }}" value="{{ value }}"
+           placeholder="2 to 20 characters" 
+           minlength="2" maxlength="20" required>
+    {% if errors and errors[name] %}
+        <div class="invalid-feedback">{{ errors[name] }}</div>
+    {% else %}
+        <div class="invalid-feedback">Enter a username which has between 2 and 20 characters!</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Username Input Component - No Validation
+   Usage: {{ macros.username_input_no_validation('username', username_value, username_invalid) }}
+   Parameters:
+   - name: input field name attribute
+   - value: current input value (optional)
+   - is_invalid: boolean to show invalid state (optional)
+   - error_message: custom error message (optional)
+#}
+{% macro username_input_no_validation(name, value='', is_invalid=False, error_message='') %}
+<div class="mb-3">
+    <label for="{{ name }}" class="form-label">
+        <i class="bi bi-person-fill me-2"></i>Username
+    </label>
+    <input type="text" class="form-control{% if is_invalid %} is-invalid{% endif %}" 
+           id="{{ name }}" name="{{ name }}" value="{{ value }}"
+           placeholder="enter your username" 
+           minlength="2" maxlength="20" required>
+    {% if is_invalid and error_message %}
+        <div class="invalid-feedback">{{ error_message }}</div>
+    {% else %}
+        <div class="invalid-feedback">Enter a username which has between 2 to 20 characters!!!</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Name Input Component (First Name / Last Name)
+   Usage: {{ macros.name_input('firstname', 'First Name', 'firstname', user_input.firstname if user_input else '') }}
+   Parameters:
+   - field_name: field identifier for id attribute
+   - label_text: display text for label
+   - name: input field name attribute
+   - value: current input value (optional)
+   - icon: bootstrap icon class (optional, defaults to bi-person-fill)
+#}
+{% macro name_input(field_name, label_text, name, value='', icon='bi-person-fill') %}
+<div class="mb-4">
+    <label for="{{ field_name }}" class="form-label">
+        <i class="{{ icon }} me-2"></i>{{ label_text }}
+    </label>
+    <input type="text" class="form-control" 
+           id="{{ field_name }}" name="{{ name }}" value="{{ value }}"
+           placeholder="letters only, max 20 characters" 
+           pattern="^[a-zA-Z]+$" maxlength="20">
+    <div class="invalid-feedback">Please enter a valid {{ label_text.lower() }}!</div>
+</div>
+{% endmacro %}
+
+{# Email Input Component
+   Usage: {{ macros.email_input('email', user_input.email if user_input else '', errors) }}
+   Parameters:
+   - name: input field name attribute
+   - value: current input value (optional)
+   - errors: validation errors dict (optional)
+#}
+{% macro email_input(name, value='', errors=None) %}
+<div class="mb-4">
+    <label for="{{ name }}" class="form-label">
+        <i class="bi bi-envelope-fill me-2"></i>Email
+        <span class="text-danger">*</span>
+    </label>
+    <input type="email" class="form-control{% if errors and errors[name] %} is-invalid{% endif %}" 
+           id="{{ name }}" name="{{ name }}" value="{{ value }}"
+           placeholder="example@domain.com" required>
+    {% if errors and errors[name] %}
+        <div class="invalid-feedback">{{ errors[name] }}</div>
+    {% else %}
+        <div class="invalid-feedback">Please enter a valid email!</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Location Input Component
+   Usage: {{ macros.location_input('location', user_input.location if user_input else '') }}
+   Parameters:
+   - name: input field name attribute
+   - value: current input value (optional)
+#}
+{% macro location_input(name, value='') %}
+<div class="mb-4">
+    <label for="{{ name }}" class="form-label">
+        <i class="bi bi-geo-alt-fill me-2"></i>Location
+    </label>
+    <input type="text" class="form-control" 
+           id="{{ name }}" name="{{ name }}" value="{{ value }}"
+           placeholder="letters, numbers, commas and spaces allowed" 
+           pattern="^(?!\s$)[a-zA-Z0-9, ]+$">
+    <div class="invalid-feedback">Please enter a valid location!</div>
+</div>
+{% endmacro %}
+
+{# Password Input Component - With Requirements
+   Usage: {{ macros.password_input_with_requirements('password', errors) }}
+   Parameters:
+   - name: input field name attribute
+   - errors: validation errors dict (optional)
+#}
+{% macro password_input_with_requirements(name, errors=None) %}
+<div class="mb-4">
+    <label for="{{ name }}" class="form-label">
+        <i class="bi bi-lock-fill me-2"></i>Password
+        <span class="text-danger">*</span>
+    </label>
+    <input type="password" class="form-control{% if errors and errors[name] %} is-invalid{% endif %}" 
+           id="{{ name }}" name="{{ name }}" minlength="8" 
+           placeholder="enter your password" required>
+    <div class="form-text text-start">
+        Minimum 8 characters, including at least one number, lowercase letter, uppercase letter, and special character.
+    </div>
+    {% if errors and errors[name] %}
+        <div class="invalid-feedback">{{ errors[name] }}</div>
+    {% else %}
+        <div class="invalid-feedback">Please enter a valid password!</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Password Input Component - No Requirements
+   Usage: {{ macros.password_input_no_requirements('password', password_invalid, 'Incorrect username or password') }}
+   Parameters:
+   - name: input field name attribute
+   - is_invalid: boolean to show invalid state (optional)
+   - error_message: custom error message (optional)
+#}
+{% macro password_input_no_requirements(name, is_invalid=False, error_message='') %}
+<div class="mb-3">
+    <label for="{{ name }}" class="form-label">
+        <i class="bi bi-lock-fill me-2"></i>Password
+    </label>
+    <input type="password" class="form-control{% if is_invalid %} is-invalid{% endif %}" 
+           id="{{ name }}" name="{{ name }}" minlength="8" 
+           placeholder="enter password" required>
+    {% if is_invalid and error_message %}
+        <div class="invalid-feedback">{{ error_message }}</div>
+    {% else %}
+        <div class="invalid-feedback">Password must be at least 8 characters long</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Confirm Password Input Component
+   Usage: {{ macros.confirm_password_input('confirm_password', errors) }}
+   Parameters:
+   - name: input field name attribute
+   - errors: validation errors dict (optional)
+#}
+{% macro confirm_password_input(name, errors=None) %}
+<div class="mb-4">
+    <label for="{{ name }}" class="form-label">
+        <i class="bi bi-lock-fill me-2"></i>Confirm Password
+        <span class="text-danger">*</span>
+    </label>
+    <input type="password" class="form-control{% if errors and errors['confirm'] %} is-invalid{% endif %}" 
+           id="{{ name }}" name="{{ name }}" 
+           placeholder="re-enter password to confirm" required>
+    {% if errors and errors['confirm'] %}
+        <div class="invalid-feedback">{{ errors['confirm'] }}</div>
+    {% else %}
+        <div class="invalid-feedback">Please confirm your password!</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# ========================================
+   BUTTON COMPONENTS
+   ======================================== #}
+
+{# Universal Yes Button Component
+   Usage: {{ macros.yes_button('Get Started', url_for('auth.login'), 'btn-lg') }}
+   Usage: {{ macros.yes_button('<i class="bi bi-plus"></i> Add New', url_for('journey.add'), 'btn-sm') }}
+   Usage: {{ macros.yes_button('Appeal', url_for('helpdesk.appeal'), 'btn-sm', 'Appeal your status') }}
+   Parameters:
+   - button_text: text to display on button (supports HTML content)
+   - link_url: URL for the button link
+   - size_class: size CSS class (optional, defaults to btn-md)
+   - title: optional title attribute for accessibility (optional)
+#}
+{% macro yes_button(button_text, link_url, size_class='btn-md', title='') %}
+{% set padding = 'padding: 0.5rem 1.5rem;' %}
+{% if size_class == 'btn-sm' %}
+    {% set padding = 'padding: 0.25rem 1rem;' %}
+{% elif size_class == 'btn-lg' %}
+    {% set padding = 'padding: 0.5rem 1.5rem;' %}
+{% else %}
+    {% set padding = 'padding: 0.375rem 1.25rem;' %}
+{% endif %}
+<a href="{{ link_url }}" class="btn {{ size_class }}" {% if title %}title="{{ title }}"{% endif %} style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px; {{ padding }} font-weight: 500; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;" onmouseover="this.style.backgroundColor='rgb(18, 210, 15)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.backgroundColor='rgba(18, 210, 15, 0.698)'; this.style.transform='translateY(0)';">{{ button_text|safe }}</a>
+{% endmacro %}
+
+{# Follow Button Component
+   Usage: {{ macros.follow_button('Follow User', 'followUserBtn', 'btn btn-sm') }}
+   Description: Button component for follow actions with JavaScript, pill-shaped design with hover effect
+   Parameters:
+   - button_text: text/HTML content for button
+   - button_id: unique ID for JavaScript targeting
+   - size_class: CSS classes (default: 'btn-lg')
+   - title: optional title attribute
+#}
+{% macro follow_button(button_text, button_id, size_class='btn-md', title='') %}
+<a href="javascript:void(0)" class="btn {{ size_class }}" id="{{ button_id }}" {% if title %}title="{{ title }}"{% endif %} style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='rgb(18, 210, 15)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.backgroundColor='rgba(18, 210, 15, 0.698)'; this.style.transform='translateY(0)';">
+    {{ button_text|safe }}
+</a>
+{% endmacro %}
+
+{# No Button Component
+   Usage: {{ macros.no_button('Cancel', url_for('journey.list'), 'btn-lg') }}
+   Description: Button component for cancel/negative actions, pill-shaped design with light red color
+   Parameters:
+   - button_text: text/HTML content for button
+   - button_url: URL for the button link
+   - size_class: CSS classes (default: 'btn-lg')
+   - title: optional title attribute
+#}
+{% macro no_button(button_text, button_url, size_class='btn-md', title='') %}
+{% set padding = 'padding: 0.5rem 1.5rem;' %}
+{% if size_class == 'btn-sm' %}
+    {% set padding = 'padding: 0.25rem 1rem;' %}
+{% elif size_class == 'btn-lg' %}
+    {% set padding = 'padding: 0.5rem 1.5rem;' %}
+{% else %}
+    {% set padding = 'padding: 0.375rem 1.25rem;' %}
+{% endif %}
+<a href="{{ button_url }}" class="btn {{ size_class }}" {% if title %}title="{{ title }}"{% endif %} style="background-color: rgba(242, 41, 34, 0.698); color: white; border: none; border-radius: 50px; {{ padding }} font-weight: 500; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;" onmouseover="this.style.backgroundColor='rgb(242, 41, 34)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.backgroundColor='rgba(242, 41, 34, 0.698)'; this.style.transform='translateY(0)';">
+    {{ button_text|safe }}
+</a>
+{% endmacro %}
+
+{# No Button JS Component
+   Usage: {{ macros.no_button_js('Cancel', 'cancelEdit()', 'btn-lg') }}
+   Description: Button component for cancel/negative JavaScript actions, pill-shaped design with light red color
+   Parameters:
+   - button_text: text/HTML content for button
+   - onclick_action: JavaScript function to call
+   - size_class: CSS classes (default: 'btn-lg')
+   - title: optional title attribute
+#}
+{% macro no_button_js(button_text, onclick_action, size_class='btn-md', title='') %}
+<button type="button" class="btn {{ size_class }}" onclick="{{ onclick_action }}" {% if title %}title="{{ title }}"{% endif %} style="background-color: rgba(242, 41, 34, 0.698); color: white; border: none; border-radius: 50px;">
+    {{ button_text|safe }}
+</button>
+{% endmacro %}
+
+{# Form Submit Button Component
+   Usage: {{ macros.form_submit_button('Sign Up') }}
+   Usage: {{ macros.form_submit_button('Login', 'btn-sm') }}
+   Usage: {{ macros.form_submit_button('Save', 'btn-lg', 'return confirm("Are you sure?")') }}
+   Parameters:
+   - button_text: text to display on button
+   - size_class: button size class (optional, defaults to btn-lg)
+     Available sizes: btn-sm, btn-md (default Bootstrap), btn-lg
+   - onclick: optional onclick JavaScript (optional)
+#}
+{% macro form_submit_button(button_text, size_class='btn-md', onclick='') %}
+{% set padding = 'padding: 0.5rem 1.5rem;' %}
+{% if size_class == 'btn-sm' %}
+    {% set padding = 'padding: 0.25rem 1rem;' %}
+{% elif size_class == 'btn-lg' %}
+    {% set padding = 'padding: 0.5rem 1.5rem;' %}
+{% else %}
+    {% set padding = 'padding: 0.375rem 1.25rem;' %}
+{% endif %}
+<button type="submit" class="btn {{ size_class }}" {% if onclick %}onclick="{{ onclick }}"{% endif %} style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px; {{ padding }} font-weight: 500; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='rgb(18, 210, 15)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.backgroundColor='rgba(18, 210, 15, 0.698)'; this.style.transform='translateY(0)';">{{ button_text|safe }}</button>
+{% endmacro %}
+
+{# ========================================
+   TEXT LINK COMPONENTS
+   ======================================== #}
+
+{# Generic Text Link Component
+   Usage: {{ macros.text_link('Already have an account?', 'Login here', url_for('auth.login')) }}
+   Usage: {{ macros.text_link("Don't have an account?", 'Register', url_for('user.register')) }}
+   Parameters:
+   - text: main text to display
+   - link_text: clickable link text
+   - link_url: URL for the link
+   - extra_classes: additional CSS classes (optional)
+#}
+{% macro text_link(text, link_text, link_url, extra_classes='') %}
+<div class="text-center p-3 {{ extra_classes }}">
+    <div>{{ text }} <a href="{{ link_url }}">{{ link_text }}</a></div>
+</div>
+{% endmacro %}
+
+{# ========================================
+   BADGE COMPONENTS
+   ======================================== #}
+
+{# Role Badge Component - Unified styling with custom background color
+   Usage: {{ macros.role_badge(session['role'], 'ms-2') }}
+   Parameters:
+   - role: user role (traveller, premium, trial, editor, admin, support_tech)
+   - extra_classes: additional CSS classes (optional)
+#}
+{% macro role_badge(role, extra_classes='') %}
+<span class="badge {{ extra_classes }}" 
+      style="background-color: rgba(213, 229, 131, 0.698); color: #212529;" 
+      title="Role: {{ role }}">
+  {% if role == 'traveller' %}
+  <i class="bi bi-person me-1"></i>{{role|capitalize}} 
+  {% elif role == 'premium' %}
+  <i class="bi bi-star-fill me-1"></i>{{role|capitalize}} 
+  {% elif role == 'trial' %}
+  <i class="bi bi-hourglass-split me-1"></i>{{role|capitalize}}
+  {% elif role == 'editor' %}
+  <i class="bi bi-pencil-square me-1"></i>{{role|capitalize}} 
+  {% elif role == 'admin' %}
+  <i class="bi bi-shield-lock me-1"></i>{{role|capitalize}} 
+  {% elif role == 'support_tech' %}
+  <i class="bi bi-headset me-1"></i>{{role|capitalize}} 
+  {% endif %}
+</span>
+{% endmacro %}
+
+{# Subscription Badge Component - Unified styling with custom background color
+   Usage: {{ macros.subscription_badge(session['role'], 'ms-2') }}
+   Parameters:
+   - role: user role (traveller, premium, trial, editor, admin, support_tech)
+   - extra_classes: additional CSS classes (optional)
+#}
+{% macro subscription_badge(role, extra_classes='') %}
+<span class="badge {{ extra_classes }}" 
+      style="background-color: rgba(213, 229, 131, 0.698); color: #212529;">
+  {% if role == 'traveller' %}
+  Free
+  {% elif role == 'premium' %}
+  Premium
+  {% elif role == 'trial' %}
+  Trial
+  {% else %}
+  Staff
+  {% endif %}
+</span>
+{% endmacro %}
+
+{# Premium Feature Modal #}
+{% macro premium_feature_modal(feature_name, id) %}
+<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="premiumFeatureModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="premiumFeatureModalLabel">Unlock '{{ feature_name }}' Features</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>'{{ feature_name }}' is a Premium Feature. Subscribe to one of our plans and get access to exclusive features, premium journeys, and more!
+                </p>
+            </div>
+            <div class="modal-footer">
+              <a href="{{ url_for('premium.premium_features') }}" class="btn btn-primary">Go to Premium</a>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="premiumLaterBtn">Maybe Later</button>
+                
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{# ========================================
+   CARD COMPONENTS
+   ======================================== #}
+
+{# Content Card Component
+   Usage: {{ macros.content_card('Recent Notifications', notification_content, '', true) }}
+   Description: Simplified card for content display in multi-card pages
+   Parameters:
+   - header_title: title text for card header
+   - body_content: main content for card body (HTML content)
+   - footer_content: optional footer content (optional)
+   - with_shadow: boolean to control shadow (default: true)
+#}
+{% macro content_card(header_title, body_content, footer_content='', with_shadow=true) %}
+<div class="card {% if with_shadow %}shadow-sm{% endif %} border-0 rounded-lg">
+    <div class="card-header text-dark text-center py-3" style="background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.25) 100%);">
+        <h5 class="mb-0">{{ header_title }}</h5>
+    </div>
+    <div class="card-body p-4">
+        {{ body_content|safe }}
+    </div>
+    {% if footer_content %}
+    {{ footer_content|safe }}
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Search Card Component
+   Usage: {{ macros.search_card('Search', search_content) }}
+   Description: Card for search functionality with left-aligned title and no shadow
+   Parameters:
+   - header_title: title text for card header
+   - body_content: main content for card body (HTML content)
+   - footer_content: optional footer content (optional)
+#}
+{% macro search_card(header_title, body_content, footer_content='') %}
+<div class="card border-0 rounded-lg mb-4">
+    <div class="card-header text-dark py-3" style="background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.25) 100%);">
+        <h5 class="mb-0 text-start">{{ header_title }}</h5>
+    </div>
+    <div class="card-body p-3 p-md-4">
+        {{ body_content|safe }}
+    </div>
+    {% if footer_content %}
+    {{ footer_content|safe }}
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Single Form Card Component
+   Usage: {{ macros.single_form_card('Create Your Account', form_content, footer_content) }}
+   Description: Specialized card for single form display (login, register, etc.)
+   Parameters:
+   - header_title: title text for card header
+   - body_content: main content for card body (HTML content)
+   - footer_content: optional footer content (optional)
+#}
+{% macro single_form_card(header_title, body_content, footer_content='') %}
+<div class="card shadow-lg border-0 rounded-lg">
+    <div class="card-header text-white text-center py-4" style="background-color: rgba(0,0,0,0.75);">
+        <h2 class="font-weight-bold mb-0">{{ header_title }}</h2>
+    </div>
+    <div class="card-body p-4">
+        {{ body_content|safe }}
+    </div>
+    {% if footer_content %}
+    {{ footer_content|safe }}
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Public Journey Card Component
+   Usage: {{ macros.public_journey_card(journey, page_auth, has_permission, user, show_hidden) }}
+   Description: Complete journey card component for journey list display
+   Parameters:
+   - journey: journey object with all properties
+   - page_auth: 'public' or 'private' to determine display mode
+   - has_permission: function to check user permissions
+   - user: current user object
+   - show_hidden: current show_hidden parameter value
+#}
+{% macro public_journey_card(journey, page_auth, has_permission, user, show_hidden) %}
+<div class="card h-100 journey-card">
+    <!-- Background Image -->
+    <div class="journey-card-bg" style="background-image: url('{% if journey.cover_image %}/static/{{ journey.cover_image }}{% else %}/static/default_journey_cover_image.png{% endif %}');">
+        {% if has_permission('hide_journey') and user.user_id != journey.user_id %}
+        <div class="hide-button-container">
+            <form action="{{ url_for('journey.hide_journey') }}" method="POST">
+                <input type="hidden" name="journey_id" value="{{ journey.journey_id }}">
+                <input type="hidden" name="page_auth" value="{{ page_auth }}">
+                <input type="hidden" name="show_hidden" value="{{ show_hidden }}">
+                {% if journey.hidden %}
+                <input type="hidden" name="is_hide" value="{{ 0 }}">
+                <button type="submit" class="btn btn-light btn-sm" onclick="return confirm('Are you sure to Unhide this journey?');">
+                    <i class="bi bi-eye"></i>
+                </button>
+                {% else %}
+                <input type="hidden" name="is_hide" value="{{ 1 }}">
+                <button type="submit" class="btn btn-light btn-sm" onclick="return confirm('Are you sure to Hide this journey?');">
+                    <i class="bi bi-eye-slash"></i>
+                </button>
+                {% endif %}
+            </form>
+        </div>
+        {% endif %}
+
+        {% if page_auth == 'private' and user.user_id == journey.user_id and journey.hidden %}
+        <!-- Hidden status indicator for user's own journeys -->
+        <div class="hidden-status-indicator">
+            <div class="btn btn-light btn-sm" title="This journey is hidden from public view">
+                <i class="bi bi-eye-slash"></i>
+            </div>
+        </div>
+        {% endif %}
+
+        <a href="{{ url_for('journey.journey_detail', journey_id=journey.journey_id) }}" class="journey-card-overlay">
+            <div class="journey-content">
+                <!-- Journey Title -->
+                <h5 class="journey-title">{{ journey.title }}</h5>
+
+                <!-- Description -->
+                <p class="journey-description">{{ journey.description[:100] }}{% if journey.description|length > 100 %}...{% endif %}</p>
+            </div>
+
+            <div class="journey-footer">
+                <!-- User Info (for public journeys) -->
+                {% if page_auth == 'public' %}
+                <div class="user-info">
+                    <span class="username">{{ journey.username }}</span>
+                    <span class="badge {% if journey.role == 'traveller' %}bg-secondary{% elif journey.role == 'editor' %}bg-primary{% elif journey.role == 'admin' %}bg-warning{% endif %}">
+                        {{ journey.role }}
+                    </span>
+                </div>
+                {% endif %}
+
+                <!-- Journey Dates -->
+                <div class="journey-dates">
+                    <div class="date-item">
+                        <span class="date-label">Start Date:</span>
+                        {{ journey.start_date.strftime('%d %b %Y') }}
+                    </div>
+                    <div class="date-item">
+                        <span class="date-label">Created:</span>
+                        {{ journey.create_time.strftime('%d %b %Y') }}
+                    </div>
+                    {% if journey.update_time and journey.update_time != journey.create_time %}
+                    <div class="date-item">
+                        <span class="date-label">Updated:</span>
+                        {{ journey.update_time.strftime('%d %b %Y') }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Status Badge -->
+                    <div class="mt-1">
+                        <span class="badge {% if journey.status == 'public' %}bg-success{% elif journey.status == 'published' %}bg-info{% else %}bg-secondary{% endif %} me-2">
+                            <i class="bi bi-{% if journey.status != 'private' %}globe{% else %}lock{% endif %} me-1"></i>{{ journey.status }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<style>
+.journey-card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.journey-card:hover {
+    transform: translateY(-5px);
+}
+
+.journey-card-bg {
+    height: 300px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.hide-button-container {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 2;
+}
+
+.hide-button-container .btn {
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    padding: 0.5rem;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+.hide-button-container .btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.hidden-status-indicator {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 2;
+}
+
+.hidden-status-indicator .btn {
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    padding: 0.5rem;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    cursor: default;
+    pointer-events: none;
+}
+
+.journey-card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.40) 100%);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+}
+
+.journey-content {
+    flex-grow: 1;
+    margin-bottom: 15px;
+}
+
+.journey-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    margin-bottom: 10px;
+}
+
+.journey-description {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    margin-bottom: 0;
+    line-height: 1.4;
+}
+
+.journey-footer {
+    margin-top: auto;
+}
+
+.user-info {
+    margin-bottom: 6px;
+}
+
+.user-info .username {
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.journey-dates {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.journey-dates .date-item {
+    margin-bottom: 2px;
+    line-height: 1.3;
+}
+
+.date-label {
+    color: rgba(255, 255, 255, 0.7);
+    margin-right: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+    .journey-card-bg {
+        height: 280px;
+    }
+
+    .journey-card-overlay {
+        padding: 15px;
+    }
+
+    .journey-title {
+        font-size: 1.25rem;
+    }
+
+    .journey-description {
+        font-size: 0.9rem;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+    }
+
+    .journey-dates {
+        font-size: 0.85rem;
+    }
+
+    .journey-dates .date-item {
+        margin-bottom: 1px;
+        line-height: 1.2;
+    }
+
+    .user-info {
+        margin-bottom: 4px;
+    }
+
+    .journey-content {
+        margin-bottom: 10px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .row-cols-md-2 > * {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+@media (min-width: 992px) {
+    .row-cols-lg-3 > * {
+        flex: 0 0 33.333333%;
+        max-width: 33.333333%;
+    }
+}
+</style>
+{% endmacro %}
+
+{# ========================================
+   PAGINATION COMPONENT
+   ======================================== #}
+
+{# Pagination Component
+   Usage: {{ macros.pagination_nav('Journey pagination', pagination, 'journey.list_journey', {'page_auth': page_auth, 'show_hidden': show_hidden}) }}
+   Usage: {{ macros.pagination_nav('Announcements pagination', announcements_pagination, 'user.inform', {'tab': 'announcements'}) }}
+   Parameters:
+   - aria_label: accessibility label for the navigation
+   - pagination: pagination object with has_prev, has_next, prev_num, next_num, page, iter_pages() methods
+   - url_endpoint: Flask url_for endpoint name
+   - url_params: dictionary of additional URL parameters (optional)
+#}
+{% macro pagination_nav(aria_label, pagination, url_endpoint, url_params={}) %}
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="{{ aria_label }}">
+        <ul class="pagination">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for(url_endpoint, page=pagination.prev_num, **url_params) }}" style="color: rgba(18, 210, 15, 0.8);">Previous</a>
+            </li>
+            {% endif %}
+
+            {% for page in pagination.iter_pages() %}
+                {% if page %}
+                    <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for(url_endpoint, page=page, **url_params) }}" 
+                           {% if page == pagination.page %}
+                           style="background-color: rgba(18, 210, 15, 0.8); border-color: rgba(18, 210, 15, 0.8); color: white;"
+                           {% else %}
+                           style="color: rgba(18, 210, 15, 0.8);"
+                           {% endif %}>{{ page }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link" style="color: rgba(18, 210, 15, 0.4);">...</span></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for(url_endpoint, page=pagination.next_num, **url_params) }}" style="color: rgba(18, 210, 15, 0.8);">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endmacro %}
+
+{# ========================================
+   FORM INPUT COMPONENTS - EXTENDED
+   ======================================== #}
+
+{# Title Input Component with Character Counter
+   Usage: {{ macros.title_input('title', journey.title if journey else '', 50, 5, title_invalid) }}
+   Parameters:
+   - name: input field name attribute
+   - value: current input value (optional)
+   - max_length: maximum character length (default: 50)
+   - min_length: minimum character length (default: 5)
+   - is_invalid: boolean to show invalid state (optional)
+   - error_message: custom error message (optional)
+#}
+{% macro title_input(name, value='', max_length=50, min_length=5, is_invalid=False, error_message='') %}
+<div class="mb-3">
+    <label for="{{ name }}" class="form-label">Title <span class="text-danger">*</span></label>
+    <input type="text" class="form-control{% if is_invalid %} is-invalid{% endif %}" 
+           id="{{ name }}" name="{{ name }}" 
+           minlength="{{ min_length }}" maxlength="{{ max_length }}" 
+           value="{{ value }}" required>
+    <div class="text-end"><small id="{{ name }}Counter" class="text-muted">{{ value|length if value else 0 }}/{{ max_length }}</small></div>
+    <div class="invalid-feedback">
+        {% if error_message %}
+            {{ error_message }}
+        {% else %}
+            Please enter a title between {{ min_length }} and {{ max_length }} characters
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{# Date Input Component
+   Usage: {{ macros.date_input('start_date', 'Start Date', journey.start_date if journey else today.isoformat(), true) }}
+   Parameters:
+   - name: input field name attribute
+   - label_text: display text for label
+   - value: current input value (optional)
+   - required: boolean to show required indicator (default: true)
+   - icon: bootstrap icon class (optional, defaults to bi-calendar3)
+#}
+{% macro date_input(name, label_text, value='', required=true, icon='bi-calendar3') %}
+<div class="mb-3">
+    <label for="{{ name }}" class="form-label">
+        <i class="{{ icon }} me-2"></i>{{ label_text }}
+        {% if required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    <input type="date" class="form-control" 
+           id="{{ name }}" name="{{ name }}" 
+           value="{{ value }}" 
+           {% if required %}required{% endif %}>
+</div>
+{% endmacro %}
+
+{# Description Textarea Component
+   Usage: {{ macros.description_textarea('description', journey.description if journey else '', 5, 5, 300, description_invalid) }}
+   Usage: {{ macros.description_textarea('description', event.description if event else '', 3, 0, 300) }} (optional field)
+   Parameters:
+   - name: input field name attribute
+   - value: current input value (optional)
+   - rows: number of textarea rows (default: 5)
+   - min_length: minimum character length (default: 5, set to 0 for optional field)
+   - max_length: maximum character length (default: 300)
+   - is_invalid: boolean to show invalid state (optional)
+   - error_message: custom error message (optional)
+   - icon: bootstrap icon class (optional, defaults to bi-journal-text)
+#}
+{% macro description_textarea(name, value='', rows=5, min_length=5, max_length=300, is_invalid=False, error_message='', icon='bi-journal-text') %}
+<div class="mb-3">
+    <label for="{{ name }}" class="form-label">
+        <i class="{{ icon }} me-2"></i>Description{% if min_length > 0 %} <span class="text-danger">*</span>{% else %} (Optional){% endif %}
+    </label>
+    <textarea class="form-control{% if is_invalid %} is-invalid{% endif %}" 
+              id="{{ name }}" name="{{ name }}" 
+              rows="{{ rows }}" {% if min_length > 0 %}minlength="{{ min_length }}"{% endif %} maxlength="{{ max_length }}" 
+              style="resize: vertical; min-height: 120px;" {% if min_length > 0 %}required{% endif %}>{{ value }}</textarea>
+    <div class="text-end"><small id="{{ name }}Counter" class="text-muted">{{ value|length if value else 0 }}/{{ max_length }}</small></div>
+    <div class="invalid-feedback">
+        {% if error_message %}
+            {{ error_message }}
+        {% elif min_length > 0 %}
+            Please enter a description between {{ min_length }} and {{ max_length }} characters
+        {% else %}
+            Description cannot exceed {{ max_length }} characters
+        {% endif %}
+        </div>
+</div>
+{% endmacro %}
+
+{# ========================================
+   FILTER COMPONENTS
+   ======================================== #}
+
+{# Filter Dropdown Component
+   Usage: {{ macros.filter_dropdown('Status', status_filter, 'status', status_options, current_url_params) }}
+   Parameters:
+   - label: display label for the filter
+   - current_value: currently selected value
+   - param_name: URL parameter name
+   - options: list of dictionaries with 'value', 'label', and optional 'badge_class' keys
+   - base_url: base URL for the filter links
+   - other_params: dictionary of other URL parameters to preserve
+#}
+{% macro filter_dropdown(label, current_value, param_name, options, base_url, other_params={}) %}
+<div class="mb-3">
+    <div class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 flex-shrink-0" style="font-size: 1.1rem; font-weight: 700; color: #212529;">{{ label }}:</label>
+        <div class="dropdown flex-grow-1">
+                    <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="{{ param_name }}Dropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border-color: #dee2e6; background-color: white;">
+            {% if current_value == '' or current_value == None %}
+                <span style="color: #212529; font-weight: 500;">All</span>
+            {% else %}
+                {% set selected_option = options | selectattr('value', 'equalto', current_value) | first %}
+                {% if selected_option %}
+                    {% if selected_option.badge_class %}
+                        <span class="badge" style="background-color: #6c757d; color: white;">{{ selected_option.label }}</span>
+                    {% else %}
+                        <span style="color: #212529; font-weight: 500;">{{ selected_option.label }}</span>
+                    {% endif %}
+                {% else %}
+                    <span class="text-muted">{{ label }}</span>
+                {% endif %}
+            {% endif %}
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="{{ param_name }}Dropdown">
+            {% for option in options %}
+            <li>
+                {% set url_params = other_params.copy() %}
+                {% if option.value %}
+                    {% set _ = url_params.update({param_name: option.value}) %}
+                {% endif %}
+                <a class="dropdown-item {% if current_value == option.value %}active{% endif %}" 
+                   href="{{ base_url }}?{% for key, value in url_params.items() %}{% if value %}{{ key }}={{ value }}{% if not loop.last %}&{% endif %}{% endif %}{% endfor %}"
+                   {% if current_value == option.value %}style="background-color: #e9ecef; color: #212529;"{% endif %}
+                   onmouseover="if (!this.classList.contains('active')) { this.style.backgroundColor='#f8f9fa'; this.style.color='#212529'; }"
+                   onmouseout="if (!this.classList.contains('active')) { this.style.backgroundColor=''; this.style.color=''; }">
+                    {% if option.badge_class %}
+                        <span class="badge {{ option.badge_class }}">{{ option.label }}</span>
+                    {% else %}
+                        {{ option.label }}
+                    {% endif %}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{# ========================================
+   MESSAGE COMPONENTS
+   ======================================== #}
+
+{# No Items Message Component
+   Usage: {{ macros.no_items_message('No events found for this journey', 'bi-calendar-plus', 'Add First Event', url_for('event.new_event', journey_id=journey.journey_id), can_create) }}
+   Usage: {{ macros.no_items_message('No journeys found', 'bi-journal-plus', 'Create Journey', url_for('journey.new_journey')) }}
+   Parameters:
+   - message: main message text to display
+   - icon: bootstrap icon class for the display icon
+   - button_text: text for the action button (optional)
+   - button_url: URL for the action button (optional)
+   - show_button: boolean to show/hide the button (default: true)
+   - button_size: button size class (default: empty, can be 'btn-sm', 'btn-lg')
+#}
+{% macro no_items_message(message, icon, button_text='', button_url='', show_button=true, button_size='') %}
+<div class="text-center py-5">
+    <div class="mb-4">
+        <i class="{{ icon }} display-1 text-muted"></i>
+    </div>
+    <h5 class="text-muted mb-4">{{ message }}</h5>
+    
+    {% if show_button and button_text and button_url %}
+    <a href="{{ button_url }}" class="btn btn-primary {{ button_size }}" 
+       style="background-color: rgba(18, 210, 15, 0.698); border-color: rgba(18, 210, 15, 0.698); border-radius: 50px; padding: 8px 24px;">
+        {{ button_text }}
+    </a>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# ========================================
+   EDIT HISTORY COMPONENTS
+   ======================================== #}
+
+{# Changes Made Table Component
+   Usage: {{ macros.changes_made_table(log.summary, ['cover_image'], loop.index0) }}
+   Usage: {{ macros.changes_made_table(log.summary, ['event_image'], loop.index0) }}
+   Usage: {{ macros.changes_made_table(log.summary, ['cover_image', 'event_image'], loop.index0) }}
+   Description: Displays a table showing the changes made in an edit log
+   Parameters:
+   - summary: list of summary items with 'item', 'old_value', 'new_value' keys
+   - image_fields: list of field names that should be treated as images (optional, defaults to [])
+   - loop_index: current loop index for generating unique modal IDs (required for image modals)
+#}
+{% macro changes_made_table(summary, image_fields=[], loop_index=0) %}
+{% if summary and summary|length > 0 %}
+<div class="changes-summary">
+    <div class="table-responsive">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th width="25%" style="font-weight: bold; color: #000;">Field</th>
+                    <th width="37.5%" style="font-weight: bold; color: #000;">Previous Value</th>
+                    <th width="37.5%" style="font-weight: bold; color: #000;">New Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for summary_item in summary %}
+                <tr>
+                    <td>
+                        {{ summary_item.item|title }}
+                    </td>
+                    <td>
+                        {% if summary_item.item in image_fields and summary_item.old_value %}
+                        <div>
+                            <img src="{{ url_for('static', filename=summary_item.old_value) }}" 
+                                    class="img-thumbnail" 
+                                    style="max-width: 80px; max-height: 80px; object-fit: cover;"
+                                    alt="Previous image"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#imageModal_{{ loop_index }}_{{ loop.index0 }}_old"
+                                    title="Click to view full image">
+                        </div>
+                        
+                        <!-- Modal for previous image -->
+                        <div class="modal fade" id="imageModal_{{ loop_index }}_{{ loop.index0 }}_old" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Previous Image</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body text-center">
+                                        <img src="{{ url_for('static', filename=summary_item.old_value) }}" class="img-fluid" alt="Previous image">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% elif summary_item.old_value %}
+                            {{ summary_item.old_value }}
+                        {% else %}
+                            Empty
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if summary_item.item in image_fields and summary_item.new_value %}
+                        <div>
+                            <img src="{{ url_for('static', filename=summary_item.new_value) }}" 
+                                    class="img-thumbnail" 
+                                    style="max-width: 80px; max-height: 80px; object-fit: cover;"
+                                    alt="New image"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#imageModal_{{ loop_index }}_{{ loop.index0 }}_new"
+                                    title="Click to view full image">
+                        </div>
+                        
+                        <!-- Modal for new image -->
+                        <div class="modal fade" id="imageModal_{{ loop_index }}_{{ loop.index0 }}_new" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">New Image</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body text-center">
+                                        <img src="{{ url_for('static', filename=summary_item.new_value) }}" class="img-fluid" alt="New image">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% elif summary_item.new_value %}
+                            {{ summary_item.new_value }}
+                        {% else %}
+                            Empty
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div>
+    <i class="bi bi-info-circle"></i>
+    No detailed changes recorded for this edit.
+</div>
+{% endif %}
+{% endmacro %}
+
+

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% from '_macros.html' import content_card, yes_button %}
+
+{% block title %}Subscription History{% endblock %}
+
+{% block content %}
+
+<div class="container-md mt-4">
+    {% if payment_details %}
+    {% for payment in payment_details %}
+    {% set card_content %}
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h5 class="mb-1">RAR Travel Journel</h5>
+                <p>Email: info@rartraveljournel.com</p>
+            </div>
+        </div>
+        <!-- Invoice Details -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <p><strong>Billing Address</strong></p>
+                <p>
+                    <span>{{payment.address1}}</span>, {% if payment.address2 %}<span>{{payment.address2}}</span>{% endif %}
+                </p>
+                <p>
+                    <span>{{payment.city}}</span>
+                    <span>{{payment.state}}</span>
+                    <span>{{payment.postal}}</span>
+                    {%if payment.billing_country == 'NZ' %}
+                    <span>New Zealand</span>
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="col-md-6 text-end">
+                &nbsp;
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <p><strong>Invoice Date:</strong> {{payment.payment_date.strftime('%d %b %Y')}}
+                </p>
+            </div>
+            <div class="col-md-6 text-end">
+                <p><strong>Payment Method:</strong>
+                    {% if payment.payment_method == 'credit_card' %}
+                    Credit Card
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <!-- Items Table -->
+        <div class="table-responsive mb-4">
+            <table class="table table-bordered">
+                <thead class="table-primary">
+                    <tr>
+                        <th>#</th>
+                        <th>Subscription Type</th>
+                        <th>Duration</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Payment Date</th>
+                        {% if payment.billing_country == 'NZ'%}
+                        <th>Sub Total</th>
+                        <th>Tax(GST)</th>
+                        <th>Total</th>
+                        {% else %}
+                        <th>Total</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>{{payment.plan_name}}</td>
+                        <td>{{ payment.duration_months }}</td>
+                        <td>{{ payment.start_date.strftime('%d %b %Y') }}</td>
+                        <td>{{ payment.expiry_date.strftime('%d %b %Y') }}</td>
+                        <td>{{ payment.payment_date.strftime('%d %b %Y') }}</td>
+                        {% if payment.billing_country == 'NZ'%}
+                        <td>{{ payment.price_excl_gst }}</td>
+                        <td>{{ (payment.payment_amount) - (payment.price_excl_gst) }}</td>
+                        <td>{{ payment.payment_amount }}</td>
+                        {% else %}
+                        <td>{{ payment.payment_amount }}</td>
+                        {% endif %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    {% endset %}
+    {{ content_card('Invoice', card_content, '', true) }}
+    {% endfor %}
+    {% endif %}
+
+    <div class="d-flex justify-content-center">
+        <div class="mt-4 mx-3">
+            {% if staff_view_user_id %}
+            {{ yes_button('<i class="bi bi-arrow-left"></i> Back to Subscription History', url_for('premium.subscription_history', user_id=staff_view_user_id)) }}
+            {% else %}
+            {{ yes_button('<i class="bi bi-arrow-left"></i> Back to Subscription History', url_for('premium.subscription_history')) }}
+            {% endif %}
+        </div>
+        <div class="mt-4 text-center">
+            <button onclick="printInvoice()" class="btn btn-md" style="background-color: rgba(18, 210, 15, 0.698); color: white; border: none; border-radius: 50px; padding: 0.375rem 1.25rem; font-weight: 500; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='rgb(18, 210, 15)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.backgroundColor='rgba(18, 210, 15, 0.698)'; this.style.transform='translateY(0)';">Print PDF</button>
+        </div>
+    </div>
+</div>
+<script>
+    function printInvoice() {
+        window.print();
+    }
+</script>
+{% endblock %}

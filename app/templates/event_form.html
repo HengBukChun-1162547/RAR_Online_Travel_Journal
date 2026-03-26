@@ -1,0 +1,541 @@
+{% extends "base.html" %}
+{% from '_macros.html' import content_card, no_button, form_submit_button %}
+{% block title %}{% if is_new %}Add New Event{% else %}Edit Event{% endif %}{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            {% set header_title %}{% if is_new %}Add New Event to "{{ journey.title }}"{% else %}Edit Event "{{ event.title }}"{% endif %}{% endset %}
+            {% set form_content %}
+                    <!-- Info box shown only if staff is editing a public event -->
+                    {% if is_staff_editing_public %}
+                    <div class="shadow-sm p-3 mb-3 bg-white rounded">
+                        <div class="d-flex">
+                            <div class="text-info me-3">
+                                <i class="bi bi-info-circle fs-5"></i>
+                            </div>
+                            <div>
+                                You are editing this event as a staff member. You can only modify the title, description, and location of this event.
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <!-- Event Details Input Form -->
+                    <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate data-journey-start-date="{{ journey.start_date.strftime('%Y-%m-%d') }}">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   value="{% if not is_new %}{{ event.title }}{% endif %}"
+                                   minlength="5" maxlength="50" required>
+                            <div class="invalid-feedback">
+                                Please provide a title for this event (between 5-50 characters).
+                            </div>
+                            <small class="form-text text-muted">Title must be between 5 and 50 characters.</small>
+                        </div>
+                        
+                        <!-- Start date and time -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="start_date" class="form-label">Start Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" 
+                                       value="{% if not is_new %}{{ event.start_date_input }}{% endif %}"
+                                       {% if is_staff_editing_public %}disabled{% else %}required{% endif %}>
+                                <div class="invalid-feedback">
+                                    Please provide a start date.
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="start_time" class="form-label">Start Time <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="start_time" name="start_time" 
+                                       value="{% if not is_new %}{{ event.start_time_input }}{% endif %}"
+                                       {% if is_staff_editing_public %}disabled{% else %}required{% endif %}>
+                                <div class="invalid-feedback">
+                                    Please provide a start time.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- End date and time (optional) -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="end_date" class="form-label">End Date (Optional)</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" 
+                                       value="{% if not is_new and event.end_date_input %}{{ event.end_date_input }}{% endif %}"
+                                       {% if is_staff_editing_public %}disabled{% endif %}>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end_time" class="form-label">End Time (Optional)</label>
+                                <input type="time" class="form-control" id="end_time" name="end_time" 
+                                       value="{% if not is_new and event.end_time_input %}{{ event.end_time_input }}{% endif %}"
+                                       {% if is_staff_editing_public %}disabled{% endif %}>
+                            </div>
+                        </div>
+
+                        <!-- Location input (search existing or enter new) -->
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location <span class="text-danger">*</span></label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control mb-2" id="location_search"
+                                        placeholder="Start typing to search..."
+                                        value="{% if not is_new and event.location_name %}{{ event.location_name }}{% endif %}">
+                                    <select class="form-select" id="location_id" name="location_id" size="5">
+                                        <option value="">Select from existing location</option>
+                                        {% for location in locations[:100] %}
+                                        <option value="{{ location.location_id }}">
+                                            {% if not is_new and event.location_id == location.location_id %}{% endif %}
+                                            {{ location.name }}
+                                        </option>
+                                        {% endfor %}
+                                        {% if locations|length > 100 %}
+                                        <option value="" id="more_option">⬇ More...</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+
+                                <!-- Or enter a new location manually -->
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="location_new" name="location_new"
+                                           placeholder="Or enter a new location">
+                                </div>
+                            </div>
+                            <div class="mt-1" id="location-feedback">
+                                <small class="text-muted">Either select an existing location or enter a new one</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Description textarea (optional) -->  
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" maxlength="500">{% if not is_new %}{{ event.description }}{% endif %}</textarea>
+                            <small class="form-text text-muted">Maximum 500 characters.</small>
+                        </div>
+                        
+                        {% if not is_staff_editing_public %}
+                        {% if is_new %}
+                        <div class="mb-3">
+                            <label for="photo" class="form-label">Photo (Optional)</label>
+                            <input type="file" class="form-control" id="photo" name="photo" accept="{% for ext in get_config('ALLOWED_EXTENSIONS') %}.{{ ext.lower() }}{% if not loop.last %}, {% endif %}{% endfor %}"
+                                {% if has_permission('add_multiple_photos') %}
+                                    multiple                         
+                                {% endif %}>
+                            <small class="text-muted">
+                                Support Format: 
+                                {% set formats = [] %}
+                                {% for ext in get_config('ALLOWED_EXTENSIONS') %}
+                                    {% set _ = formats.append(ext.upper()) %}
+                                {% endfor %}
+                                {{ formats|join(", ") }}.
+                                Max Size: {{ get_config('MAX_FILE_SIZE') / (1024 * 1024) }}MB
+                            </small>
+                            <!-- {% if not is_new and event.event_image %}
+                            <div class="mt-2">
+                                <small class="form-text text-muted">Current photo will be replaced if you upload a new one.</small>
+                                <div class="mt-2">
+                                    <img src="{{ url_for('static', filename=event.event_image) }}" 
+                                         alt="Event photo" class="img-thumbnail event-photo-clickable" style="max-height: 200px;">
+                                </div>
+                            </div>
+                            {% endif %} -->
+                        </div>
+                        {% endif %}
+                        {% endif %}
+
+                        <!-- Staff Reason Field -->
+                        {% if is_staff_editing_public %}
+                        <div class="mb-3 p-3 bg-warning bg-opacity-10 border border-warning rounded" id="staffReasonSection">
+                            <label for="staff_reason" class="form-label text-danger">
+                                <i class="bi bi-exclamation-triangle"></i> Staff Reason for Modification
+                                <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" id="staff_reason" name="staff_reason" rows="3" minlength="5" placeholder="Please provide a reason for modifying this user's event..." required></textarea>
+                            <div class="invalid-feedback">
+                                Please provide a reason for this modification. At least 5 characters are required.
+                            </div>
+                            <small class="text-muted mt-1">As a staff member modifying another user's event, you must provide a reason for the change.</small>
+                        </div>
+                        {% endif %}
+
+                        <!-- Submit button -->
+                        <div class="d-flex justify-content-between mt-4">
+                            {{ no_button('<i class="bi bi-x-circle"></i> Cancel', url_for('journey.journey_detail', journey_id=journey.journey_id) if is_new else url_for('event.event_detail', event_id=event.event_id), 'btn-md') }}
+                            {{ form_submit_button('<i class="bi bi-save"></i> ' + ('Add Event' if is_new else 'Save Changes'), 'btn-md') }}
+                        </div>
+                    </form>
+            {% endset %}
+            {{ content_card(header_title, form_content, with_shadow=true) }}
+        </div>
+    </div>
+</div>
+
+<style>
+    #location_id,
+    #location_new {
+      background-image: none !important;
+    }
+    
+    #location_id::-moz-selection,
+    #location_new::-moz-selection {
+      background-image: none !important;
+    }
+    
+    .error-border {
+      border-color: #dc3545 !important;
+      box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25) !important;
+    }
+
+    .text-danger {
+      color: #dc3545 !important;
+    }
+
+    .text-muted {
+      color: #6c757d !important;
+    }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.querySelector("form");
+    const title = document.getElementById("title");
+    const startDate = document.getElementById("start_date");
+    const startTime = document.getElementById("start_time");
+    const endDate = document.getElementById("end_date");
+    const endTime = document.getElementById("end_time");
+    const description = document.getElementById("description");
+    
+    const locationSearch = document.getElementById("location_search");
+    const locationSelect = document.getElementById("location_id");
+    const locationNew = document.getElementById("location_new");
+    const locationFeedback = document.getElementById("location-feedback");
+    let expanded = false;
+    
+    let formSubmitted = false;
+    let journeyDateError = false;
+    
+    // Get journey start date
+    const journeyStartDate = new Date("{{ journey.start_date.strftime('%Y-%m-%d') }}");
+    
+    const allLocations = [
+        {% for location in locations %}
+            {id: "{{ location.location_id }}", name: "{{ location.name }}"},
+        {% endfor %}
+    ];
+
+    function saveFormData() {
+        const isNewEvent = {{ 'true' if is_new else 'false' }};
+        
+        const formData = {
+            isNewEvent: isNewEvent,
+            eventId: {{ event.event_id if not is_new else 'null' }},
+            title: title.value,
+            description: description.value,
+            start_date: startDate.value,
+            start_time: startTime.value,
+            end_date: endDate.value,
+            end_time: endTime.value,
+            location_id: locationSelect.value,
+            location_new: locationNew.value,
+            location_search: locationSearch.value,
+            // Mark that this data comes from validation error
+            fromValidationError: true,
+            // Add timestamp to identify the latest save
+            timestamp: new Date().getTime()
+        };
+        
+        sessionStorage.setItem('eventFormData', JSON.stringify(formData));
+    }
+    
+    // Function to restore form data
+    function restoreFormData() {
+        const savedData = sessionStorage.getItem('eventFormData');
+        if (!savedData) return;
+        
+        const formData = JSON.parse(savedData);
+        const currentIsNewEvent = {{ 'true' if is_new else 'false' }};
+        const currentEventId = {{ event.event_id if not is_new else 'null' }};
+        
+        const shouldRestore = 
+            (formData.isNewEvent === currentIsNewEvent) && 
+            (currentIsNewEvent || (!currentIsNewEvent && formData.eventId === currentEventId)) &&
+            formData.fromValidationError === true;
+            
+        if (shouldRestore) {
+            // Restore form data
+            title.value = formData.title || '';
+            description.value = formData.description || '';
+            startDate.value = formData.start_date || '';
+            startTime.value = formData.start_time || '';
+            endDate.value = formData.end_date || '';
+            endTime.value = formData.end_time || '';
+            
+            if (formData.location_id) {
+                locationSelect.value = formData.location_id;
+            }
+            
+            locationSearch.value = formData.location_search || '';
+            locationNew.value = formData.location_new || '';
+        }
+        
+        sessionStorage.removeItem('eventFormData');
+    }
+
+    function showError(element, feedbackElement, message) {
+        if (element) {
+            element.classList.add("error-border");
+        }
+        if (feedbackElement && message) {
+            feedbackElement.innerHTML = `<small class='text-danger'>${message}</small>`;
+        }
+    }
+
+    function clearError(element, feedbackElement, message) {
+        if (element) {
+            element.classList.remove("error-border");
+        }
+        if (feedbackElement && message) {
+            feedbackElement.innerHTML = `<small class='text-muted'>${message}</small>`;
+        }
+    }
+
+    function validateLocation() {
+        if (!locationSelect.value && !locationNew.value) {
+            if (formSubmitted || locationSelect.dataset.touched || locationNew.dataset.touched) {
+                showError(locationSelect, locationFeedback, "Either select an existing location or enter a new one");
+                showError(locationNew, null, null);
+            }
+            return false;
+        } else {
+            clearError(locationSelect, locationFeedback, "Either select an existing location or enter a new one");
+            clearError(locationNew, null, null);
+            return true;
+        }
+    }
+
+    function validateRequiredField(field, feedbackElement, message) {
+        if (!field.value && field.required) {
+            if (formSubmitted || field.dataset.touched) {
+                showError(field, feedbackElement, message || "This field is required");
+            }
+            return false;
+        } else {
+            clearError(field, feedbackElement, null);
+            return true;
+        }
+    }
+
+    function initializeLocationSelection() {
+        if (!{{ is_new|tojson }} && "{{ event.location_id if not is_new else '' }}") {
+            locationSelect.value = "{{ event.location_id if not is_new else '' }}";
+            
+            {% if not is_new and event.location_name %}
+                locationSearch.value = "{{ event.location_name }}";
+            {% endif %}
+        }
+    }
+
+    function validateDateTime() {
+        let isValid = true;
+        
+        if (startDate.value && startTime.value) {
+            // Create event start date object
+            const eventStartDate = new Date(`${startDate.value}T${startTime.value}`);
+            
+            // Create journey start date object
+            const journeyStartDateStr = form.dataset.journeyStartDate;
+            const journeyStartDate = new Date(journeyStartDateStr);
+            journeyStartDate.setHours(0, 0, 0, 0); // Reset to start of day
+            
+            // Check if event start date is not earlier than journey start date
+            if (eventStartDate < journeyStartDate) {
+                if (formSubmitted || startDate.dataset.touched) {
+                    showError(startDate, null, null);
+                    if (formSubmitted) {
+                        // Save form data
+                        saveFormData();
+                        journeyDateError = true;
+                    }
+                }
+                isValid = false;
+            } else {
+                clearError(startDate, null, null);
+                clearError(startTime, null, null);
+            }
+            
+            if (endDate.value && endTime.value) {
+                const endDatetime = new Date(`${endDate.value}T${endTime.value}`);
+                
+                // Check that end date/time is after start date/time
+                if (endDatetime <= eventStartDate) {
+                    if (formSubmitted || endDate.dataset.touched || endTime.dataset.touched) {
+                        showError(endDate, null, null);
+                        showError(endTime, null, null);
+                        if (formSubmitted) {
+                            // Save form data
+                            saveFormData();
+                            
+                            if (!journeyDateError) {
+                                setTimeout(() => {
+                                    alert("End time must be later than start time");
+                                }, 10);
+                            }
+                        }
+                    }
+                    isValid = false;
+                } else {
+                    clearError(endDate, null, null);
+                    clearError(endTime, null, null);
+                }
+            }
+        }
+        
+        return isValid;
+    }
+
+    document.getElementById("more_option")?.addEventListener("click", function (event) {
+        event.preventDefault();
+        if (!expanded) {
+            locationSelect.innerHTML = "<option value=''>Select from existing location</option>";
+            allLocations.forEach(loc => {
+                let option = document.createElement("option");
+                option.value = loc.id;
+                option.textContent = loc.name;
+                locationSelect.appendChild(option);
+            });
+            expanded = true;
+        }
+    });
+
+    locationSearch.addEventListener("input", function () {
+        let inputText = this.value.toLowerCase();
+        let filteredLocations = allLocations.filter(loc => 
+            loc.name.toLowerCase().includes(inputText)
+        ).slice(0, 10);
+        
+        locationSelect.innerHTML = "<option value=''>Select from existing location</option>";
+        
+        filteredLocations.forEach(loc => {
+            let option = document.createElement("option");
+            option.value = loc.id;
+            option.textContent = loc.name;
+            locationSelect.appendChild(option);
+        });
+    });
+
+    locationSelect.addEventListener("change", function () {
+        locationSelect.dataset.touched = "true";
+        if (this.value) {
+            locationNew.value = "";
+            locationSearch.value = this.options[this.selectedIndex].text;
+            clearError(locationSelect, locationFeedback, "Either select an existing location or enter a new one");
+            clearError(locationNew, null, null);
+        } else {
+            validateLocation();
+        }
+    });
+
+    locationNew.addEventListener("input", function () {
+        locationNew.dataset.touched = "true";
+        if (this.value.trim()) {
+            locationSelect.value = "";
+            clearError(locationSelect, locationFeedback, "Either select an existing location or enter a new one");
+            clearError(locationNew, null, null);
+        } else {
+            validateLocation();
+        }
+    });
+
+    const requiredFields = form.querySelectorAll("[required]");
+    requiredFields.forEach(field => {
+        field.addEventListener("focus", function() {
+            field.dataset.touched = "true";
+        });
+        
+        field.addEventListener("input", function() {
+            validateRequiredField(field, null, null);
+        });
+        
+        field.addEventListener("blur", function() {
+            validateRequiredField(field, null, null);
+        });
+    });
+
+    if (endDate && endTime && startDate && startTime) {
+        [endDate, endTime, startDate, startTime].forEach(field => {
+            if (field) {
+                field.addEventListener("change", function() {
+                    field.dataset.touched = "true";
+                    validateDateTime();
+                });
+            }
+        });
+    }
+
+    form.addEventListener("submit", function (event) {
+        formSubmitted = true;
+        journeyDateError = false;
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!validateRequiredField(field, null, null)) {
+                isValid = false;
+            }
+        });
+        
+        if (!validateLocation()) {
+            isValid = false;
+        }
+        
+        if (!validateDateTime()) {
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            event.preventDefault();
+            
+            // Save form data for restoration after validation failure
+            saveFormData();
+            
+            // Show only one alert based on error type
+            if (journeyDateError) {
+                setTimeout(function() {
+                    alert(`Event date cannot be earlier than the journey start date (${journeyStartDate.toLocaleDateString()})`);
+                }, 10);
+            } else if (!document.querySelector(".error-border")) {
+                setTimeout(function() {
+                    alert("Please check all required fields are completed correctly.");
+                }, 10);
+            }
+            
+            const firstInvalidField = form.querySelector(".error-border");
+            if (firstInvalidField) {
+                firstInvalidField.focus();
+            }
+        } else {
+            // Form validation succeeded, clear saved data
+            // so next visit to the form will be empty
+            sessionStorage.removeItem('eventFormData');
+        }
+    });
+
+    form.classList.remove("was-validated");
+    
+    window.addEventListener("load", function() {
+        const allFields = form.querySelectorAll("input, select, textarea");
+        allFields.forEach(field => {
+            clearError(field, null, null);
+        });
+        
+        if (locationFeedback) {
+            locationFeedback.innerHTML = "<small class='text-muted'>Either select an existing location or enter a new one</small>";
+        }
+
+        initializeLocationSelection();
+        
+        // Restore previously saved form data
+        restoreFormData();
+    });
+});
+</script>
+{% endblock %}

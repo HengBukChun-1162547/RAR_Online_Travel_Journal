@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% import "_macros.html" as macros %}
+
+{% block title %}Register - Online Travel Journal{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-light py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                {% set form_content %}
+                <form method="POST" action="{{ url_for('user.register') }}" class="needs-validation" novalidate>
+                    <!-- Username -->
+                    {{ macros.username_input_with_validation('username', user_input.username if user_input else '', errors) }}
+
+                    <!-- First Name -->
+                    {{ macros.name_input('firstname', 'First Name', 'firstname', user_input.firstname if user_input else '') }}
+
+                    <!-- Last Name -->
+                    {{ macros.name_input('lastname', 'Last Name', 'lastname', user_input.lastname if user_input else '') }}
+
+                    <!-- Email -->
+                    {{ macros.email_input('email', user_input.email if user_input else '', errors) }}
+
+                    <!-- Location -->
+                    {{ macros.location_input('location', user_input.location if user_input else '') }}
+
+                    <!-- Password -->
+                    {{ macros.password_input_with_requirements('password', errors) }}
+
+                    <!-- Confirm Password -->
+                    {{ macros.confirm_password_input('confirm_password', errors) }}
+
+                    <!-- Submit Button -->
+                    {{ macros.form_submit_button('Sign Up') }}
+                </form>
+                {% endset %}
+                
+                {% set footer_content %}
+                {{ macros.text_link('Already have an account?', 'Login here', url_for('auth.login')) }}
+                {% endset %}
+                
+                {{ macros.single_form_card('Create Your Account', form_content, footer_content) }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

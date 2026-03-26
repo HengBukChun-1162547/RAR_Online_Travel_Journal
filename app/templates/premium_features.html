@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% import "_macros.html" as macros %}
+
+{% block title %}Premium Features{% endblock %}
+
+{% block header %}
+<div class="p-3 pb-md-4 text-center mt-4">
+  <h1 class="fw-bold text-body-emphasis">Premium Features</h1>
+  <p class="fs-6 text-body-secondary">Enhance your travel journaling experience with exclusive premium features</p>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4 row-cols-1 row-cols-md-3 mb-5">
+  
+  <!-- Feature 1: Published Journeys -->
+  <div class="col">
+    <div class="card h-100 shadow-sm">
+      <div class="card-header bg-warning bg-opacity-10 py-3">
+        <h5 class="my-0 fw-normal text-center">
+          <i class="bi bi-globe me-2"></i>Published Journeys
+        </h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Make your journeys visible to everyone</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Featured on the homepage</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Three visibility options: Private, Public, or Published</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Remain visible to logged-in users if subscription expires</li>
+        </ul>
+        <p class="text-muted small">Share your adventures with the world! Your journeys can be featured on our homepage.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature 2: Multiple Images -->
+  <div class="col">
+    <div class="card h-100 shadow-sm">
+      <div class="card-header bg-warning bg-opacity-10 py-3">
+        <h5 class="my-0 fw-normal text-center">
+          <i class="bi bi-images me-2"></i>Multiple Images
+        </h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Add multiple images per event</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Keep all your images if subscription expires</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Create rich visual stories of your adventures</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Create stunning photo galleries</li>
+        </ul>
+        <p class="text-muted small">Tell the complete story of your travels with multiple images for each memorable moment.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature 3: Journey Cover Images -->
+  <div class="col">
+    <div class="card h-100 shadow-sm">
+      <div class="card-header bg-warning bg-opacity-10 py-3">
+        <h5 class="my-0 fw-normal text-center">
+          <i class="bi bi-image me-2"></i>Journey Cover Images
+        </h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Choose a cover image for each journey</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Create visually appealing headers</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Display thumbnails in journey listings</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Keep existing cover images if subscription expires</li>
+        </ul>
+        <p class="text-muted small">Make your journeys stand out with stunning cover images that capture the essence of your travels.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Subscription Plans -->
+<div class="row mt-5 mb-5">
+  <div class="col-12">
+    <h3 class="text-center mb-4">Subscription Plans</h3>
+    <div class="table-responsive">
+      <table class="table table-hover border">
+        <thead class="table-light">
+          <tr>
+            <th>Plan</th>
+            <th>Duration</th>
+            <th>Discount</th>
+            <th>Price (excl. GST)</th>
+            <th>Total Price (incl. GST)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if subscription_plans %}
+          {% for plan in subscription_plans %}
+          <tr {% if plan.subscription_type == 'Trial' %}class="table-info"{% endif %}>
+            <td><strong>{{ plan.name }}</strong></td>
+            <td>{{ plan.duration_months }} month{% if plan.duration_months > 1 %}s{% endif %}</td>
+            <td>{% if plan.discount_percent and plan.discount_percent > 0 %}<span class="text-danger">{{ plan.discount_percent }}% off</span>{% else %}-{% endif %}</td>
+            <td>{% if plan.price_excl_gst %}${{ "%.2f"|format(plan.price_excl_gst) }}{% else %}-{% endif %}</td>
+            <td><strong>{% if plan.price_excl_gst %}${{ "%.2f"|format(plan.price_excl_gst * (1 + plan.gst_percentage / 100)) }}</strong>{% else %}-{% endif %}</td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-muted text-center small mt-2">All prices are in NZD and include {{ subscription_plans[1].gst_percentage if subscription_plans }}% GST</p>
+  </div>
+</div>
+
+<!-- Pricing and Call to Action -->
+<div class="row mt-5">
+  <div class="col-md-8 offset-md-2">
+    <div class="card shadow border-warning">
+      <div class="card-body text-center p-5">
+        <div class="mb-4 py-3 border-bottom">
+          <div class="d-flex align-items-center justify-content-center">
+            <div class="me-3">
+              <div class="bg-light rounded-circle p-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 60px; height: 60px;">
+                {% if user.profile_image == None %} <!-- Show profile image-->
+                <div class="rounded-circle d-flex justify-content-center align-items-center bg-light mb-2" style="width: 60px; height: 60px;">
+                    <i class="bi bi-person-circle text-primary fs-1" style="font-size: 36px;"></i>
+                </div>
+                {% else %}
+                    <img src="/static/{{ user.profile_image }}" alt="{{ user.username }}" class="rounded-circle mb-2" style="width: 60px; height: 60px; object-fit: cover;">
+                {% endif %}
+              </div>
+            </div>
+            <div class="text-start">
+              <div class="d-flex align-items-center mb-1">
+                <h5 class="mb-0 me-2">{{ session['username'] }}</h6>
+                {{ macros.role_badge(session['role'], 'fs-6') }}
+              </div>
+              <!--
+              <div class="d-flex align-items-center">
+                <span class="text-muted me-2 small">Subscription:</span>
+                {{ macros.subscription_badge(session['role'], 'fs-6 me-2') }}
+              </div>
+              -->
+            </div>
+          </div>
+        </div>
+
+        
+        
+        <div class="mb-4 py-3 border-bottom">
+          <h5 class="card-title mb-3">Manage Your Subscription</h4>
+          <p class="card-text mb-3">Stay in control of your subscription preferences effortlessly. </p>
+          {{ macros.yes_button('Manage Subscription', url_for('premium.manage_subscription'), 'btn-md') }}
+        </div>
+        
+
+
+        <h5 class="card-title mb-3">Ready to Enhance Your Travel Journal?</h4>
+        <p class="card-text mb-3">Unlock all premium features and take your travel journaling to the next level.</p>
+        
+        <!-- Subscription Options -->
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-3">
+        {% if has_permission('view_trial_page') %}
+          {{ macros.yes_button('<i class="bi bi-gift me-2"></i>Get a Free Trial', url_for('premium.subscribe_to_trial'), 'btn-md') }}
+        {% endif %}
+        {% if has_permission('view_subscription_page') %}
+          {{ macros.yes_button('<i class="bi bi-star-fill me-2"></i>Purchase a Subscription', url_for('premium.subscribe_to_premium_features'), 'btn-md') }}
+        {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
